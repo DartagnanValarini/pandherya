@@ -11,6 +11,7 @@
 <link rel="icon" type="image/png" href="assets/p-mark.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap&text=FLK!%20STUDIOS">
 <style>
 /* Layout: icon rail at left, routed views to the right (home = four vertical photo panels), thin footer.
    Palette taken from the Pandherya brand book: deep navy night + forged gold. */
@@ -225,7 +226,9 @@ img{max-width:100%}
 footer{grid-column:2;border-top:1px solid var(--line2);background:var(--bg);display:flex;align-items:center;justify-content:center;gap:14px;font-size:11px;color:#767a8a;padding-bottom:env(safe-area-inset-bottom,0px)}
 footer a{color:#767a8a;text-decoration:none}
 footer a:hover{color:var(--text)}
-footer .flk{color:var(--gold);font-weight:600;letter-spacing:.06em}
+footer .flk{font-family:'Bungee',system-ui,sans-serif;font-weight:400;color:#FFFFFF;letter-spacing:.02em;font-size:12px;transition:opacity .2s}
+footer .flk b{color:#D2FF00;font-weight:400}
+footer .flk:hover{color:#FFFFFF;opacity:.85}
 footer .flk:not([href]){cursor:default}
 :focus-visible{outline:1px solid var(--gold)}
 
@@ -286,7 +289,7 @@ footer .flk:not([href]){cursor:default}
     </section>
   </main>
 
-  <footer><span>© Pandherya</span><span>·</span><a href="#privacidade">Política de Privacidade</a><span>·</span><a href="#termos">Termos de Serviço</a><span>·</span><a href="https://github.com/DartagnanValarini/pandherya" target="_blank" rel="noopener">GitHub</a><span>·</span><span>Desenvolvido por <a id="flk" class="flk" target="_blank" rel="noopener">FLK! STUDIOS</a></span></footer>
+  <footer><span>© Pandherya</span><span>·</span><a href="#privacidade">Política de Privacidade</a><span>·</span><a href="#termos">Termos de Serviço</a><span>·</span><a href="https://github.com/DartagnanValarini/pandherya" target="_blank" rel="noopener">GitHub</a><span>·</span><span>Desenvolvido por <a id="flk" class="flk" target="_blank" rel="noopener" aria-label="FLK! STUDIOS">FLK<b>!</b> STUDIOS</a></span></footer>
 </div>
 <div class="tip" id="tip"></div>
 <div class="modal" id="modal" hidden></div>
