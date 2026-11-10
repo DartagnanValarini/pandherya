@@ -104,7 +104,7 @@ img{max-width:100%}
 .card:hover,.card:focus-visible{transform:translateY(-3px);border-color:var(--gold-dim);outline:none}
 .thumb{position:relative;aspect-ratio:4/4.6;max-width:100%;background:#05070d;overflow:hidden}
 .thumb img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 20%;transition:transform .5s}
-.thumb img.contain{object-fit:contain;padding:18%}
+.thumb img.contain{object-fit:contain;padding:8%}
 .card:hover .thumb img{transform:scale(1.04)}
 .thumb svg{display:block;width:100%;height:100%}
 .chip{position:absolute;left:10px;top:10px;padding:3px 9px;border-radius:999px;background:rgba(6,8,15,.8);border:1px solid var(--line);font-size:9.5px;letter-spacing:.14em;color:#c2bfb4;text-transform:uppercase}
@@ -299,7 +299,7 @@ const CONFIG={
   ip:'IP.DO.SERVIDOR:2456',          // endereço real do servidor
   liveUrl:'https://www.twitch.tv',    // canal da live
   patronoUrl:'#',
-  flkUrl:'',                          // site da FLK! STUDIOS (crédito no rodapé)                     // link de pagamento / Discord para os pacotes
+  flkUrl:'https://flk-studio.web.app/flki-portfolio',                          // site da FLK! STUDIOS (crédito no rodapé)                     // link de pagamento / Discord para os pacotes
   // banco de dados do mural e do placar (Supabase). A chave publicável pode ficar no site.
   dbUrl:'https://twcqlcqeicjrtobirbro.supabase.co',
   dbKey:'sb_publishable_gyLd8obkOH959W2sE0Xs8g_OUnKSlLD',
@@ -412,17 +412,17 @@ const DATA={
   {id:'joenes',n:'Joenes',t:'Caçador',cla:'wolves',img:IMG('joenes')},
   {id:'lucille',n:'Lucille',t:'Viajante',img:IMG('lucille')},
   {id:'radahn',n:'Radahn',t:'Viajante',img:IMG('radahn')},
-  {id:'mors',n:'Mors',t:'Viajante',img:IMG('mors')},
+  {id:'mors',n:'Mors',t:'Phantom Fleet',cla:'phantom',img:IMG('mors')},
   {id:'sutra',n:'Sutra',t:'Viajante',img:IMG('sutra')}
  ],
  ordens:[
   {id:'corvos',n:'Clã do Corvo',t:'Clã',img:'assets/p/sigurdr.jpg',lema:'Enquanto houver um Corvo de pé, nosso estandarte jamais tocará o chão.',
    txt:['Fundado pelo Jarl Sigurdr, o Clã do Corvo reuniu sob seu estandarte guerreiros de inúmeras origens, unidos por um mesmo juramento. Um clã forjado em batalhas, sustentado pela lealdade e fortalecido por gerações de guerreiros.',
         'Suas tradições são guardadas por Olaf, o Velho, o Lögmaethur — o Heraldo das Leis. Os banquetes ficam por conta de Ubbe, o Punho do Corvo. Floki, irmão juramentado, foi por muito tempo a sombra do Jarl. E a notícia já corre por Pandherya: os Corvos estão chegando.']},
-  {id:'lox',n:'Lox Bêbado',t:'Guilda & Taverna',img:'assets/p/forseti.jpg',lema:'Sempre haverá uma nova aventura para contar e um motivo para brindar.',
+  {id:'lox',n:'Lox Bêbado',t:'Guilda & Taverna',img:'assets/c/lox.jpg',contain:1,lema:'Sempre haverá uma nova aventura para contar e um motivo para brindar.',
    txt:['Guilda e taverna fundada por Forseti, o Patrono do Lox Bêbado. Tornou-se ponto de encontro para viajantes, guerreiros e aventureiros que buscam descanso, boas histórias e uma mesa farta.',
         'Já foi deixada em ruínas por um certo incidente envolvendo Ubbe — e de pé de novo, como toda boa taverna.']},
-  {id:'culto',n:'O Culto',t:'Culto',img:'assets/p/cultista.jpg',lema:'O fim de um mundo é apenas o primeiro capítulo de outro conhecimento.',
+  {id:'culto',n:'O Culto',t:'Culto',img:'assets/c/culto.jpg',contain:1,lema:'O fim de um mundo é apenas o primeiro capítulo de outro conhecimento.',
    txt:['O Culto do Caos, ao qual o Cultista dedicou sua existência: o estudo das artes arcanas, da necromancia e dos mistérios que cercam a vida e a morte.','Seus maiores legados são a Biblioteca, onde se preservam conhecimentos de diferentes eras, e o Codex, registro de descobertas e segredos que poucos ousariam ler.']},
   {id:'kibo',n:'Kibo',t:'Clã',img:'assets/c/kibo.jpg',contain:1,lema:'',
    txt:['Clã liderado por Yume Eir, a curandeira. Foi até o povo de Kibo que Aquä Riorr encontrou o caminho depois de ser banido para Valheim.']},
