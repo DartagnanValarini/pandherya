@@ -296,6 +296,15 @@ const CONFIG={
   ip:'IP.DO.SERVIDOR:2456',          // endereço real do servidor
   liveUrl:'https://www.twitch.tv',    // canal da live
   patronoUrl:'#',                     // link de pagamento / Discord para os pacotes
+  // banco de dados do mural e do placar (Supabase). A chave publicável pode ficar no site.
+  dbUrl:'https://twcqlcqeicjrtobirbro.supabase.co',
+  dbKey:'sb_publishable_gyLd8obkOH959W2sE0Xs8g_OUnKSlLD',
+};
+/* acesso ao banco (REST do Supabase) */
+const DB={
+  async get(tab,q){const r=await fetch(`${CONFIG.dbUrl}/rest/v1/${tab}?${q}`,{headers:{apikey:CONFIG.dbKey}});if(!r.ok)throw new Error(await r.text());return r.json();},
+  async add(tab,row){const r=await fetch(`${CONFIG.dbUrl}/rest/v1/${tab}`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(row)});
+    if(!r.ok){let m='Não foi possível salvar agora. Tente de novo.';try{const j=await r.json();if(/Muitos envios/.test(j.message))m=j.message;}catch(_){}throw new Error(m);}}
 };
 
 /* =========================================================
@@ -592,8 +601,10 @@ function drawWorld(){
   <div class="board"><h4>Placar de Líderes</h4><ol id="ex-board"></ol></div></div>`);
  const $=id=>s.querySelector('#'+id);
  let round=0,score=0,order=[];
- function board(){let b=[];try{b=JSON.parse(localStorage.getItem('pandherya-board')||'[]');}catch(e){}
-   $('ex-board').innerHTML=b.length?b.map(x=>`<li>${x.n} — ${x.s.toLocaleString('pt-BR')}</li>`).join(''):'<li style="list-style:none;margin-left:-20px">Ninguém jogou ainda neste navegador.</li>';}
+ async function board(){const el=$('ex-board');
+   try{const b=await DB.get('placar','select=nome,pontos&order=pontos.desc,criado_em.asc&limit=10');
+     el.innerHTML=b.length?b.map(x=>`<li>${esc(x.nome)} — ${x.pontos.toLocaleString('pt-BR')}</li>`).join(''):'<li style="list-style:none;margin-left:-20px">Ninguém jogou ainda. Seja o primeiro!</li>';}
+   catch(e){el.innerHTML='<li style="list-style:none;margin-left:-20px">Não foi possível carregar o placar agora.</li>';}}
  function start(){order=POOL.map((_,i)=>i).sort(()=>Math.random()-.5);round=0;score=0;show();}
  function show(){
    $('ex-r').textContent=round+1;$('ex-s').textContent=score.toLocaleString('pt-BR');$('ex-next').hidden=true;
@@ -613,8 +624,10 @@ function drawWorld(){
    $('ex-clue').textContent=`Fim! Você fez ${score.toLocaleString('pt-BR')} pontos.`;
    $('ex-opts').innerHTML=`<input id="ex-name" placeholder="Seu nome de viking" maxlength="24" style="padding:12px;background:#0a0e1a;border:1px solid var(--line);border-radius:8px"><button id="ex-save">Salvar no placar</button>`;
    $('ex-next').textContent='JOGAR DE NOVO';
-   $('ex-save').addEventListener('click',()=>{const n=esc($('ex-name').value.trim()||'Viking anônimo');let b=[];try{b=JSON.parse(localStorage.getItem('pandherya-board')||'[]');}catch(e){}
-     b.push({n,s:score});b.sort((x,y)=>y.s-x.s);b=b.slice(0,10);try{localStorage.setItem('pandherya-board',JSON.stringify(b));}catch(e){}board();$('ex-save').disabled=true;$('ex-save').textContent='Salvo';});
+   $('ex-save').addEventListener('click',async()=>{const btn=$('ex-save'),n=($('ex-name').value.trim()||'Viking anônimo').slice(0,24);
+     btn.disabled=true;btn.textContent='Salvando...';
+     try{await DB.add('placar',{nome:n,pontos:score});btn.textContent='Salvo no placar';board();}
+     catch(e){btn.disabled=false;btn.textContent='Salvar no placar';$('ex-clue').textContent=e.message;}});
  });
  board();start();
 }
@@ -642,7 +655,7 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
      <p style="margin-top:12px"><a href="#" data-open-p="forseti" style="color:var(--gold)">Ler a história de Forseti →</a></p></div></div></div>
    <div class="box"><h4>Mural da Comunidade</h4><div id="mural"></div>
     <form class="compose" id="tform"><input id="t-name" placeholder="Seu nome" maxlength="24" required><textarea id="t-msg" rows="2" placeholder="Deixe um recado para os vikings..." maxlength="200" required></textarea><button class="gold-btn" type="submit">PREGAR NO MURAL</button></form>
-    <p style="color:var(--faint);font-size:11px;margin:8px 0 0">Por enquanto os recados ficam salvos só neste navegador.</p></div>
+    <p id="t-status" style="color:var(--faint);font-size:11px;margin:8px 0 0">Os recados ficam visíveis para todos os visitantes.</p></div>
   </div>
   <div class="box" style="margin-top:20px"><h4>Entre em Pandherya</h4>
    <p style="margin:0;color:var(--muted);line-height:1.6;max-width:62ch">Conecte-se ao servidor e venha fazer parte da 7ª Temporada.</p>
@@ -650,10 +663,17 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
    <p style="margin:14px 0 0"><a class="gold-btn" href="#patrono">VER PACOTES DE PATRONO</a></p></div>`);
  s.addEventListener('click',e=>{const a=e.target.closest('[data-open-p]');if(a){e.preventDefault();openDetail('personagens',a.dataset.openP);}});
  const mural=s.querySelector('#mural');
- function load(){try{return JSON.parse(localStorage.getItem('pandherya-mural')||'[]');}catch(e){return [];}}
- function draw(){const p=load();mural.innerHTML=p.length?p.map(x=>`<div class="post"><div class="av">${esc(x.n[0].toUpperCase())}</div><div><b>${esc(x.n)}</b><p>“${esc(x.m)}”</p></div></div>`).join(''):'<p style="color:var(--muted);margin:0">O mural está vazio. Seja o primeiro a deixar um recado.</p>';}
- s.querySelector('#tform').addEventListener('submit',e=>{e.preventDefault();const n=s.querySelector('#t-name').value.trim(),m=s.querySelector('#t-msg').value.trim();if(!n||!m)return;
-   const p=load();p.unshift({n,m});try{localStorage.setItem('pandherya-mural',JSON.stringify(p.slice(0,30)));}catch(_){}s.querySelector('#t-msg').value='';draw();});
+ const st=s.querySelector('#t-status');
+ const quando=d=>new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+ async function draw(){
+   if(!mural.children.length)mural.innerHTML='<p style="color:var(--muted);margin:0">Carregando recados...</p>';
+   try{const p=await DB.get('mural','select=nome,mensagem,criado_em&order=criado_em.desc&limit=30');
+     mural.innerHTML=p.length?p.map(x=>`<div class="post"><div class="av">${esc(x.nome[0].toUpperCase())}</div><div><b>${esc(x.nome)}</b> <span style="color:var(--faint);font-size:11px">${quando(x.criado_em)}</span><p>“${esc(x.mensagem)}”</p></div></div>`).join(''):'<p style="color:var(--muted);margin:0">O mural está vazio. Seja o primeiro a deixar um recado.</p>';}
+   catch(e){mural.innerHTML='<p style="color:var(--muted);margin:0">Não foi possível carregar o mural agora.</p>';}}
+ s.querySelector('#tform').addEventListener('submit',async e=>{e.preventDefault();const n=s.querySelector('#t-name').value.trim(),m=s.querySelector('#t-msg').value.trim();if(!n||!m)return;
+   const btn=e.currentTarget.querySelector('button');btn.disabled=true;st.textContent='Pregando no mural...';
+   try{await DB.add('mural',{nome:n.slice(0,24),mensagem:m.slice(0,200)});s.querySelector('#t-msg').value='';st.textContent='Recado pregado no mural.';await draw();}
+   catch(err){st.textContent=err.message;}finally{btn.disabled=false;}});
  s.querySelector('#copyip').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText(s.querySelector('#ip').textContent);b.textContent='Copiado';}catch(_){const r=document.createRange();r.selectNodeContents(s.querySelector('#ip'));getSelection().removeAllRanges();getSelection().addRange(r);b.textContent='Selecionado';}});
  draw();
 }
@@ -681,7 +701,7 @@ page('live','live','Live','Saga Pandherya ao vivo',`
 }
 
 /* ---- legal ---- */
-page('privacidade','shield','Política de Privacidade','Pandherya',`<div class="box" style="max-width:760px;margin:0 auto;line-height:1.7"><p style="margin:0">Este site não coleta dados pessoais. Os recados do mural, o placar do jogo e a preferência de leitura ficam salvos apenas no seu navegador e podem ser apagados limpando os dados do site.</p></div>`);
+page('privacidade','shield','Política de Privacidade','Pandherya',`<div class="box" style="max-width:760px;margin:0 auto;line-height:1.7"><p style="margin:0">Este site não coleta dados pessoais. Os recados do mural e os nomes salvos no placar do jogo ficam públicos para todos os visitantes. Não escreva dados pessoais neles. A preferência de leitura fica salva apenas no seu navegador.</p></div>`);
 page('termos','scroll','Termos de Serviço','Pandherya',`<div class="box" style="max-width:760px;margin:0 auto;line-height:1.7"><p style="margin:0">Pandherya é um servidor comunitário de Valheim. As regras de convivência, punições e o contato da administração serão publicados aqui.</p></div>`);
 
 /* ---- login ---- */
