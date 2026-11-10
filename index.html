@@ -546,7 +546,7 @@ function openDetail(cat,id){
   let members='';
   if(cat==='ordens'){const ms=DATA.personagens.filter(p=>p.cla===it.id);if(ms.length)members=`<div class="kicker" style="margin-top:20px">Membros</div><div class="members">${ms.map(m=>`<button data-open="personagens:${m.id}"><img src="${m.img}" alt="">${m.n}</button>`).join('')}</div>`;}
   modal.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-label="${it.n}"><div class="thumb">${pic(it)}<span class="chip">${CAT[cat]}</span></div>
-   <div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">${chip}</div><h3>${it.n}</h3>${it.ep?`<h4>${it.ep}</h4>`:''}<div class="meta">${sub}</div>${body}${quote?`<div class="quote">“${quote}”</div>`:''}${dl}${members}</div></div>`;
+   <div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">${chip}</div><h3>${it.n}</h3>${it.ep?`<h4>${it.ep}</h4>`:''}<div class="meta">${sub}</div>${body}${quote?`<div class="quote">“${quote}”</div>`:''}${cat==='personagens'&&audioOf(it.id)?`<div class="kicker" style="margin-top:18px">Ouça a história</div><audio controls preload="none" src="${audioOf(it.id)}" style="width:100%;margin-top:6px"></audio>`:''}${dl}${members}</div></div>`;
   modal.hidden=false;modal.querySelector('.mbox').scrollTop=0;document.getElementById('mclose').focus();
 }
 function closeModal(){modal.hidden=true;modal.innerHTML='';}
@@ -685,19 +685,31 @@ page('live','live','Live','Saga Pandherya ao vivo',`
   <p style="color:var(--muted);margin:0;line-height:1.6">O chat abre junto com a transmissão.</p></div></div>`);
 
 /* ---- narrador ---- */
+/* Narrações geradas com ElevenLabs v3 (voz Eliel). Só entram aqui depois da aprovação do Dart. */
+const AUDIO=new Set(['sigurdr','olaf','ubbe','floki','cultista','forseti','yume','aryya','aqua','etyr','arqueiro']);
+const audioOf=id=>AUDIO.has(id)?`assets/audio/${id}.mp3`:null;
 {
- const STORIES=DATA.personagens.filter(p=>p.txt).map(p=>({n:`${p.n} — ${p.ep}`,img:p.img,txt:p.txt}));
+ const STORIES=DATA.personagens.filter(p=>p.txt).map(p=>({id:p.id,n:`${p.n} — ${p.ep}`,img:p.img,txt:p.txt,src:audioOf(p.id)}));
  const s=page('narrador','music','O Narrador','Ouça as histórias e registros de Pandherya',`
-  <div class="player"><div class="kicker">Tocando</div><h4 id="n-title">Selecione uma história</h4>
+  <div class="player"><div class="kicker" id="n-kicker">Narrador</div><h4 id="n-title">Selecione uma história</h4>
+   <audio id="n-audio" controls preload="none" style="width:100%" hidden></audio>
    <div class="prow"><button class="gold-btn" id="n-play">OUVIR</button><button class="tbtn" id="n-stop">Parar</button><button class="tbtn" id="n-read">LER TRANSCRIÇÃO</button></div>
    <div class="transcript" id="n-text" hidden></div></div>
-  <div class="queue">${STORIES.map((l,i)=>`<div class="qitem" data-i="${i}"><span><img src="${l.img}" alt="">${l.n}</span><button class="tbtn">Selecionar</button></div>`).join('')}</div>`);
- let cur=-1;const synth=window.speechSynthesis;
- s.querySelectorAll('.qitem').forEach(q=>q.querySelector('button').addEventListener('click',()=>{cur=+q.dataset.i;s.querySelectorAll('.qitem').forEach(x=>x.classList.toggle('on',x===q));
-   s.querySelector('#n-title').textContent=STORIES[cur].n;s.querySelector('#n-text').innerHTML=STORIES[cur].txt.map(p=>`<p>${p}</p>`).join('');}));
+  <div class="queue">${STORIES.map((l,i)=>`<div class="qitem" data-i="${i}"><span><img src="${l.img}" alt="">${l.n}</span><button class="tbtn">${l.src?'▶ Ouvir':'Selecionar'}</button></div>`).join('')}</div>`);
+ let cur=-1;const synth=window.speechSynthesis,au=s.querySelector('#n-audio');
+ const stopAll=()=>{try{synth&&synth.cancel();}catch(e){}au.pause();};
+ function play(){if(cur<0)return;const st=STORIES[cur];stopAll();
+   if(st.src){au.hidden=false;if(!au.src.endsWith(st.src))au.src=st.src;au.play().catch(()=>{});}
+   else if(synth){au.hidden=true;try{const u=new SpeechSynthesisUtterance(st.n+'. '+st.txt.join(' '));u.lang='pt-BR';u.rate=.92;synth.speak(u);}catch(e){}}}
+ function select(i,autoplay){cur=i;const st=STORIES[i];s.querySelectorAll('.qitem').forEach(x=>x.classList.toggle('on',+x.dataset.i===i));
+   s.querySelector('#n-title').textContent=st.n;s.querySelector('#n-kicker').textContent=st.src?'Narração':'Voz do navegador';
+   s.querySelector('#n-text').innerHTML=st.txt.map(p=>`<p>${p}</p>`).join('');stopAll();au.hidden=!st.src;if(st.src)au.src=st.src;if(autoplay)play();}
+ s.querySelectorAll('.qitem').forEach(q=>q.querySelector('button').addEventListener('click',()=>select(+q.dataset.i,true)));
+ au.addEventListener('ended',()=>{const nx=STORIES.findIndex((x,i)=>i>cur&&x.src);if(nx>=0)select(nx,true);});
  s.querySelector('#n-read').addEventListener('click',()=>{if(cur<0)return;const t=s.querySelector('#n-text');t.hidden=!t.hidden;});
- s.querySelector('#n-play').addEventListener('click',()=>{if(cur<0||!synth)return;try{synth.cancel();const u=new SpeechSynthesisUtterance(STORIES[cur].n+'. '+STORIES[cur].txt.join(' '));u.lang='pt-BR';u.rate=.92;synth.speak(u);}catch(e){}});
- s.querySelector('#n-stop').addEventListener('click',()=>{try{synth&&synth.cancel();}catch(e){}});
+ s.querySelector('#n-play').addEventListener('click',()=>{if(cur<0)select(0,true);else play();});
+ s.querySelector('#n-stop').addEventListener('click',stopAll);
+ window.addEventListener('hashchange',()=>{if(location.hash!=='#narrador')stopAll();});
 }
 
 /* ---- legal ---- */
