@@ -273,12 +273,12 @@ footer a:hover{color:var(--text)}
       <a class="panel" href="#personagens"><img src="assets/panel-sigurdr.jpg" alt="" style="object-position:50% 20%">
         <div class="plabel"><div class="ico" data-icon="users"></div><span>PERSONAGENS</span></div>
         <div class="pmore"><p>Conheça os Heróis</p><b>EXPLORE</b></div></a>
-      <a class="panel" href="#ordens"><img src="assets/panel-olaf.jpg" alt="" style="object-position:50% 20%">
+      <a class="panel" href="#ordens"><img src="assets/panel-ordens.jpg" alt="" style="object-position:50% 40%">
         <div class="plabel"><div class="ico" data-icon="shield"></div><span>ORDENS &amp; CASAS</span></div>
         <div class="pmore"><p>Clãs de Pandherya</p><b>EXPLORE</b></div></a>
-      <a class="panel" href="#biblioteca"><img src="assets/panel-cultista.jpg" alt="" style="object-position:50% 25%">
+      <a class="panel" href="#biblioteca"><img src="assets/panel-biblioteca.jpg" alt="" style="object-position:50% 45%">
         <div class="plabel"><div class="ico" data-icon="search"></div><span>BIBLIOTECA</span></div>
-        <div class="pmore"><p>A Biblioteca do Cultista</p><b>EXPLORE</b></div></a>
+        <div class="pmore"><p>A Grande Biblioteca</p><b>EXPLORE</b></div></a>
       <div class="wikitag">PANDHERYA WIKI</div>
     </section>
   </main>
@@ -521,7 +521,7 @@ const LISTS={
  lore:['book','LORE','Crônicas & mitos de Pandherya','Buscar crônicas...']
 };
 Object.entries(LISTS).forEach(([cat,[icon,title,sub,ph]])=>{
-  const extra=cat==='lore'?`<div class="banner"><img src="assets/season7.jpg" alt="Pandherya — 7ª Temporada, A Grande Ironia"></div>`:'';
+  const extra=cat==='lore'?`<div class="banner"><img src="assets/season7.jpg" alt="Pandherya — 7ª Temporada, A Grande Ironia"></div>`:cat==='ordens'?`<div class="banner"><img src="assets/panel-ordens.jpg" alt="Salão dos clãs com estandartes" style="max-height:300px;object-position:50% 30%"></div>`:'';
   const s=page(cat,icon,title,sub,`${extra}${toolbar(ph)}<div class="grid"></div>`);
   const g=s.querySelector('.grid'),q=s.querySelector('input');
   const draw=()=>{const t=q.value.trim().toLowerCase();
@@ -559,7 +559,7 @@ stage.addEventListener('click',e=>{const c=e.target.closest('.card');if(c)openDe
 /* ---- biblioteca ---- */
 {
  const tabs=[['todos','TODOS'],['personagens','PERSONAGENS'],['ordens','ORDENS & CASAS'],['itens','ITENS'],['locais','LOCAIS'],['lore','LORE']];
- const s=page('biblioteca','scroll','Biblioteca','ARQUIVOS DE PANDHERYA',`${toolbar('Buscar nos arquivos...')}
+ const s=page('biblioteca','scroll','Biblioteca','ARQUIVOS DE PANDHERYA',`<div class="banner"><img src="assets/panel-biblioteca.jpg" alt="A Biblioteca do Cultista" style="max-height:300px;object-position:50% 55%"></div>${toolbar('Buscar nos arquivos...')}
   <div class="tabs">${tabs.map(([k,l],i)=>`<button data-tab="${k}" class="${i?'':'on'}">${l}</button>`).join('')}</div><div class="grid"></div>`);
  let tab='todos';const g=s.querySelector('.grid'),q=s.querySelector('input');
  const draw=()=>{const t=q.value.trim().toLowerCase();let html='';
