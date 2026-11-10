@@ -685,7 +685,8 @@ page('live','live','Live','Saga Pandherya ao vivo',`
   <p style="color:var(--muted);margin:0;line-height:1.6">O chat abre junto com a transmissão.</p></div></div>`);
 
 /* ---- narrador ---- */
-/* Narrações geradas com ElevenLabs v3 (voz Eliel). Só entram aqui depois da aprovação do Dart. */
+/* Narrações: as que vierem do Drive (arquivo .mp3 na pasta do personagem) têm prioridade.
+   As geradas por API (ElevenLabs v3, voz Eliel) só entram com aprovação do Dart. */
 const AUDIO=new Set(['sigurdr','olaf','ubbe','floki','cultista','forseti','yume','aryya','aqua','etyr','arqueiro']);
 const audioOf=id=>AUDIO.has(id)?`assets/audio/${id}.mp3`:null;
 {
