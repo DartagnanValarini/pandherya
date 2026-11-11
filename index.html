@@ -148,6 +148,16 @@ img{max-width:100%}
 .members img{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:50% 20%}
 
 /* Map */
+.mapbox.vila img{display:block;width:100%;height:auto}
+.pin{position:absolute;transform:translate(-50%,-100%);width:34px;height:42px;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));transition:transform .15s}
+.pin::before{content:"";position:absolute;left:3px;top:0;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:radial-gradient(circle at 40% 40%,#2a1c0c,#0c0805);border:2px solid var(--gold)}
+.pin::after{content:"";position:absolute;left:50%;bottom:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#ffb54a;box-shadow:0 0 10px 3px rgba(255,170,60,.75);animation:pinglow 2.4s ease-in-out infinite}
+.pin span{position:absolute;left:0;right:0;top:5px;text-align:center;font-family:var(--display);font-size:14px;color:var(--gold);font-weight:600}
+.pin:hover,.pin:focus-visible{transform:translate(-50%,-100%) scale(1.15);outline:none}
+@keyframes pinglow{50%{box-shadow:0 0 16px 6px rgba(255,170,60,.9)}}
+.maphint{text-align:center;color:var(--muted);font-size:13px;margin:12px 0 0}
+.tip.pt{transform:translate(-50%,-100%)}
+@media (max-width:700px){.pin{width:24px;height:30px}.pin::before{width:20px;height:20px;left:2px}.pin span{font-size:11px;top:3px}}
 .mapbox{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#151514}
 .mapbox canvas{display:block;width:100%;height:auto;aspect-ratio:16/10;filter:saturate(.8)}
 .mapnote{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;padding:22px 28px;background:rgba(6,8,15,.82);border:1px solid var(--gold-dim);border-radius:10px;max-width:86%}
@@ -456,6 +466,24 @@ const DATA={
   {id:'trono',n:'Trono de Patrono',t:'Mobília',img:'assets/i-trono.jpg',contain:1,txt:['Trono de ossos e caveiras para o salão do patrono. Exclusivo do pacote de R$ 100.']},
   {id:'dracko',n:'Dracko',t:'Pet',img:'assets/i-dracko.jpg',contain:1,txt:['Pequeno dragão de estimação. Exclusivo do pacote de R$ 100.']}
  ],
+ /* Pontos do mapa da vila (x,y em % da imagem assets/mapa/vila.jpg). n = nome, txt = descrição, img = foto.
+    Sem nome/descrição ainda: o popup mostra o recorte do mapa e "ainda será contada". Não inventar textos. */
+ mapa:[
+  {id:'ponto-1',num:1,x:28.44,y:31.37,n:'',t:'Construção',img:'assets/mapa/ponto-1.jpg',txt:[]},
+  {id:'ponto-2',num:2,x:9.69,y:45.79,n:'',t:'Construção',img:'assets/mapa/ponto-2.jpg',txt:[]},
+  {id:'ponto-3',num:3,x:9.19,y:62.97,n:'',t:'Construção',img:'assets/mapa/ponto-3.jpg',txt:[]},
+  {id:'ponto-4',num:4,x:17.19,y:69.29,n:'',t:'Construção',img:'assets/mapa/ponto-4.jpg',txt:[]},
+  {id:'ponto-5',num:5,x:29.19,y:72.06,n:'',t:'Construção',img:'assets/mapa/ponto-5.jpg',txt:[]},
+  {id:'ponto-6',num:6,x:43.94,y:40.80,n:'',t:'Construção',img:'assets/mapa/ponto-6.jpg',txt:[]},
+  {id:'ponto-7',num:7,x:50.00,y:20.62,n:'',t:'Construção',img:'assets/mapa/ponto-7.jpg',txt:[]},
+  {id:'ponto-8',num:8,x:60.38,y:19.96,n:'',t:'Construção',img:'assets/mapa/ponto-8.jpg',txt:[]},
+  {id:'ponto-9',num:9,x:75.31,y:16.85,n:'',t:'Construção',img:'assets/mapa/ponto-9.jpg',txt:[]},
+  {id:'ponto-10',num:10,x:92.12,y:33.26,n:'',t:'Torre',img:'assets/mapa/ponto-10.jpg',txt:[]},
+  {id:'ponto-11',num:11,x:61.69,y:48.00,n:'',t:'Monumento',img:'assets/mapa/ponto-11.jpg',txt:[]},
+  {id:'ponto-12',num:12,x:50.00,y:67.07,n:'',t:'Construção',img:'assets/mapa/ponto-12.jpg',txt:[]},
+  {id:'ponto-13',num:13,x:85.75,y:67.63,n:'',t:'Construção',img:'assets/mapa/ponto-13.jpg',txt:[]},
+  {id:'ponto-14',num:14,x:66.75,y:90.91,n:'',t:'Construção',img:'assets/mapa/ponto-14.jpg',txt:[]}
+ ],
  lore:[
   {id:'season7',n:'7ª Temporada: A Grande Ironia',t:'Temporada',img:'assets/season7.jpg',txt:['A temporada atual de Pandherya. Os registros desta era ainda estão sendo escritos.']}
  ]
@@ -543,15 +571,15 @@ page('bestiario','skull','BESTIÁRIO','Criaturas & fauna de Pandherya',`<div cla
 const modal=document.getElementById('modal');
 function openDetail(cat,id){
   const it=byId(cat,id);if(!it)return;const [chip,sub]=subOf(cat,it);
-  let body=(it.txt&&it.txt.length)?it.txt.map(p=>`<p>${p}</p>`).join(''):`<p style="color:var(--muted)">A história ${cat==='ordens'?'deste clã':'deste personagem'} ainda será contada.</p>`;
+  let body=(it.txt&&it.txt.length)?it.txt.map(p=>`<p>${p}</p>`).join(''):`<p style="color:var(--muted)">A história ${cat==='ordens'?'deste clã':cat==='mapa'?'deste local':'deste personagem'} ainda será contada.</p>`;
   const facts=Object.assign({},it.f||{});
   if(cat==='personagens'&&it.cla)facts['Clã']=`<a href="#" data-open="ordens:${it.cla}" style="color:var(--gold)">${CLAN[it.cla].n}</a>`;
   const dl=Object.keys(facts).length?'<dl>'+Object.entries(facts).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')+'</dl>':'';
   const quote=it.q||it.lema;
   let members='';
   if(cat==='ordens'){const ms=DATA.personagens.filter(p=>p.cla===it.id);if(ms.length)members=`<div class="kicker" style="margin-top:20px">Membros</div><div class="members">${ms.map(m=>`<button data-open="personagens:${m.id}"><img src="${m.img}" alt="">${m.n}</button>`).join('')}</div>`;}
-  modal.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-label="${it.n}"><div class="thumb">${pic(it)}<span class="chip">${CAT[cat]}</span></div>
-   <div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">${chip}</div><h3>${it.n}</h3>${it.ep?`<h4>${it.ep}</h4>`:''}<div class="meta">${sub}</div>${body}${quote?`<div class="quote">“${quote}”</div>`:''}${cat==='personagens'&&audioOf(it.id)?`<div class="kicker" style="margin-top:18px">Ouça a história</div><audio controls preload="none" src="${audioOf(it.id)}" style="width:100%;margin-top:6px"></audio>`:''}${dl}${members}</div></div>`;
+  modal.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-label="${it.n}"><div class="thumb">${pic(it)}<span class="chip">${CAT[cat]||'Mapa da Vila'}</span></div>
+   <div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">${chip}</div><h3>${it.n||(it.t+' nº '+it.num)}</h3>${it.ep?`<h4>${it.ep}</h4>`:''}<div class="meta">${sub}</div>${body}${quote?`<div class="quote">“${quote}”</div>`:''}${cat==='personagens'&&audioOf(it.id)?`<div class="kicker" style="margin-top:18px">Ouça a história</div><audio controls preload="none" src="${audioOf(it.id)}" style="width:100%;margin-top:6px"></audio>`:''}${dl}${members}</div></div>`;
   modal.hidden=false;modal.querySelector('.mbox').scrollTop=0;document.getElementById('mclose').focus();
 }
 function closeModal(){modal.hidden=true;modal.innerHTML='';}
@@ -577,23 +605,16 @@ stage.addEventListener('click',e=>{const c=e.target.closest('.card');if(c)openDe
 applyReading();
 
 /* ---- mapa ---- */
-const BIOMAS={'Prados':'#6f8a4a','Floresta Negra':'#2f4a34','Pântano':'#4a4a2c','Montanha':'#a9b4bf','Planícies':'#a8924c','Terras Brumosas':'#5c5470','Terras de Cinzas':'#8a3a26','Oceano':'#23435a','Extremo Norte':'#d8e2ea'};
-page('mapa','map','CARTOGRAFIA','O mundo de Pandherya',`
-  <div class="mapbox"><canvas id="worldmap" width="1600" height="1000"></canvas>
-  <div class="mapnote"><h4>Mapa da 7ª Temporada</h4><p>O mapa oficial do mundo, com bases, portos e territórios dos clãs, será publicado em breve.</p></div></div>
-  <div class="legend">${Object.entries(BIOMAS).map(([k,v])=>`<span><i style="background:${v}"></i>${k}</span>`).join('')}</div>`);
-function rng(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646;};}
-function drawWorld(){
-  const c=document.getElementById('worldmap');if(!c||c.dataset.done)return;c.dataset.done=1;
-  const ctx=c.getContext('2d'),W=c.width,H=c.height,r=rng(42);
-  ctx.fillStyle='#16243a';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.04)';for(let i=0;i<220;i++){const x=r()*W,y=r()*H;ctx.beginPath();ctx.arc(x,y,6,Math.PI*1.1,Math.PI*1.9);ctx.stroke();}
-  const blobs=[[.5,.55,.36,'Floresta Negra'],[.47,.56,.14,'Prados'],[.57,.4,.08,'Prados'],[.7,.43,.12,'Pântano'],[.45,.2,.13,'Montanha'],[.22,.72,.15,'Planícies'],[.83,.26,.11,'Terras Brumosas'],[.15,.88,.1,'Terras de Cinzas'],[.62,.08,.07,'Extremo Norte']];
-  blobs.forEach(([bx,by,br,b],k)=>{ctx.beginPath();for(let i=0;i<=48;i++){const a=i/48*Math.PI*2;const d=br*(1+.18*Math.sin(a*5+k)+.08*Math.sin(a*11+k*2));ctx.lineTo(bx*W+Math.cos(a)*d*W,by*H+Math.sin(a)*d*W*.75);}ctx.closePath();ctx.fillStyle=BIOMAS[b];ctx.fill();ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=2;ctx.stroke();});
-  for(let i=0;i<5000;i++){ctx.fillStyle=`rgba(0,0,0,${r()*.12})`;ctx.fillRect(r()*W,r()*H,2,2);}
-  for(let i=0;i<500;i++){const x=W*(.25+r()*.5),y=H*(.3+r()*.5);ctx.fillStyle='rgba(15,30,18,.55)';ctx.beginPath();ctx.moveTo(x,y-7);ctx.lineTo(x-4,y+3);ctx.lineTo(x+4,y+3);ctx.fill();}
-  for(let i=0;i<60;i++){const x=W*(.36+r()*.2),y=H*(.12+r()*.16);ctx.fillStyle='rgba(240,245,250,.6)';ctx.beginPath();ctx.moveTo(x,y-10);ctx.lineTo(x-8,y+5);ctx.lineTo(x+8,y+5);ctx.fill();}
-}
+page('mapa','map','CARTOGRAFIA','A vila de Pandherya',`
+  <div class="mapbox vila"><img src="assets/mapa/vila.jpg" alt="Mapa da vila de Pandherya">
+   ${DATA.mapa.map(m=>`<button class="pin" style="left:${m.x}%;top:${m.y}%" data-ponto="${m.id}" aria-label="${m.n||m.t+' '+m.num}" data-ptip="${m.n||m.t+' nº '+m.num}"><span>${m.num}</span></button>`).join('')}</div>
+  <p class="maphint">Clique nos marcadores para conhecer cada construção da vila.</p>`);
+views.mapa.addEventListener('click',e=>{const b=e.target.closest('[data-ponto]');if(b)openDetail('mapa',b.dataset.ponto);});
+views.mapa.querySelectorAll('.pin').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{const r=el.getBoundingClientRect();tip.textContent=el.dataset.ptip;tip.style.top=(r.top-8)+'px';tip.style.left=(r.left+r.width/2)+'px';tip.classList.add('show','pt');});
+  el.addEventListener('mouseleave',()=>{tip.classList.remove('show','pt');tip.style.left='';});
+});
+function drawWorld(){}
 
 /* ---- quem disse? ---- */
 {
