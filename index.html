@@ -432,6 +432,8 @@ const DATA={
   {id:'mors',n:'Mors',t:'Phantom Fleet',cla:'phantom',img:IMG('mors')},
   {id:'sutra',n:'Sutra',t:'Viajante',img:IMG('sutra')}
  ],
+ /* Clãs: a história (txt) e o lema vêm SOMENTE de um texto solto na pasta do clã no Drive (PERSONAGENS/<Clã>/).
+    Nunca derive texto de clã, lore, local ou item das histórias dos personagens. Sem documento: txt:[] e lema:''. */
  ordens:[
   {id:'corvos',n:'Clã do Corvo',t:'Clã',img:'assets/c/corvos.jpg',contain:1,lema:'',txt:[]},
   {id:'lox',n:'Lox Bêbado',t:'Guilda & Taverna',img:'assets/c/lox.jpg',contain:1,lema:'',txt:[]},
@@ -524,7 +526,7 @@ const LISTS={
  lore:['book','LORE','Crônicas & mitos de Pandherya','Buscar crônicas...']
 };
 Object.entries(LISTS).forEach(([cat,[icon,title,sub,ph]])=>{
-  const extra=cat==='lore'?`<div class="banner"><img src="assets/season7.jpg" alt="Pandherya — 7ª Temporada, A Grande Ironia"></div>`:cat==='ordens'?`<div class="banner"><img src="assets/panel-ordens.jpg" alt="Salão dos clãs com estandartes" style="max-height:300px;object-position:50% 30%"></div>`:'';
+  const extra=cat==='lore'?`<div class="banner"><img src="assets/season7.jpg" alt="Pandherya — 7ª Temporada, A Grande Ironia"></div>`:cat==='personagens'?`<div class="banner"><img src="assets/panel-personagens.jpg" alt="Guerreiro viking diante do fiorde ao entardecer" style="max-height:360px;object-position:50% 4%"></div>`:cat==='ordens'?`<div class="banner"><img src="assets/panel-ordens.jpg" alt="Salão dos clãs com estandartes" style="max-height:300px;object-position:50% 30%"></div>`:'';
   const s=page(cat,icon,title,sub,`${extra}${toolbar(ph)}<div class="grid"></div>`);
   const g=s.querySelector('.grid'),q=s.querySelector('input');
   const draw=()=>{const t=q.value.trim().toLowerCase();
