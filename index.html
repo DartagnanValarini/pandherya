@@ -369,6 +369,11 @@ const DATA={
         'Em suas andanças, chegou até os próprios domínios dos deuses, onde recebeu de Loki um estranho presente: sete vozes, cada uma representando um dos pecados, capazes de anunciar a presença de pecadores. Desde então, sua mente jamais encontrou silêncio. Entre a loucura e a lucidez, Floki tornou-se uma figura imprevisível, tão perigosa quanto habilidosa.',
         'Irmão juramentado dos Corvos, serviu como sombra de Sigurdr e infiltrou-se durante seis meses entre os Templários, contribuindo para a queda de todo um reino. Dado como morto, desapareceu das histórias do Norte. Agora, uma notícia o traz de volta a Pandherya: os Corvos estão chegando. E Floki pretende reencontrar seus irmãos e fazer justiça contra aqueles que ousaram usar seu nome.'],
    q:'Sete vozes me avisam quando o pecado se aproxima. O problema é quando todas começam a falar ao mesmo tempo.',f:{'Laço':'Irmão juramentado dos Corvos'}},
+  {id:'ravnir',n:'Ravnir',ep:'A Mão do Rei',t:'Guerreiro',s:'Humano • Guerreiro • Martelo do Rei',cla:'corvos',img:IMG('ravnir'),
+   txt:['Nasceu sob a sombra dos corvos e sobreviveu ao massacre de sua aldeia, tornando-se o Filho do Corvo. Guerreiro lendário do Clã dos Corvos, Ravnir construiu sua história ao lado de Sigurdr, seu irmão de vida, enfrentando deuses, monstros e inúmeras provações.',
+        'Como Martelo do Rei e irmão de armas de Sigurdr, tornou-se um dos pilares de Hrafngard, assumindo o trono como regente em sua ausência. Sua jornada, porém, foi marcada por perdas, sacrifícios e pela corrupção de Frostrjóður, cuja essência de Surtur despertou a fúria que habitava sua própria alma.',
+        'Após sobreviver ao confronto, Ravnir desapareceu novamente entre as névoas, deixando para trás apenas rumores de seu retorno.'],
+   q:'Nem toda ausência é morte. Nem todo silêncio é vazio.',f:{'Também conhecido como':'Filho do Corvo, Martelo do Rei'}},
   {id:'cultista',n:'Cultista',ep:'O Arauto do Caos',t:'Mago',s:'Humano • Mago • Destruidor de Mundos',cla:'culto',img:IMG('cultista'),
    txt:['Poucos conhecem sua verdadeira história. Menos ainda compreendem a extensão de seus conhecimentos.',
         'Figura enigmática de Pandherya, o Cultista dedicou sua existência ao estudo das artes arcanas, da necromancia e dos mistérios que cercam a vida e a morte. Ligado ao Culto do Caos, percorre caminhos que poucos ousariam trilhar, acumulando conhecimentos que ultrapassam os limites da compreensão comum.',
@@ -428,26 +433,17 @@ const DATA={
   {id:'sutra',n:'Sutra',t:'Viajante',img:IMG('sutra')}
  ],
  ordens:[
-  {id:'corvos',n:'Clã do Corvo',t:'Clã',img:'assets/c/corvos.jpg',contain:1,lema:'Enquanto houver um Corvo de pé, nosso estandarte jamais tocará o chão.',
-   txt:['Fundado pelo Jarl Sigurdr, o Clã do Corvo reuniu sob seu estandarte guerreiros de inúmeras origens, unidos por um mesmo juramento. Um clã forjado em batalhas, sustentado pela lealdade e fortalecido por gerações de guerreiros.',
-        'Suas tradições são guardadas por Olaf, o Velho, o Lögmaethur — o Heraldo das Leis. Os banquetes ficam por conta de Ubbe, o Punho do Corvo. Floki, irmão juramentado, foi por muito tempo a sombra do Jarl. E a notícia já corre por Pandherya: os Corvos estão chegando.']},
-  {id:'lox',n:'Lox Bêbado',t:'Guilda & Taverna',img:'assets/c/lox.jpg',contain:1,lema:'Sempre haverá uma nova aventura para contar e um motivo para brindar.',
-   txt:['Guilda e taverna fundada por Forseti, o Patrono do Lox Bêbado. Tornou-se ponto de encontro para viajantes, guerreiros e aventureiros que buscam descanso, boas histórias e uma mesa farta.',
-        'Já foi deixada em ruínas por um certo incidente envolvendo Ubbe — e de pé de novo, como toda boa taverna.']},
-  {id:'culto',n:'O Culto',t:'Culto',img:'assets/c/culto.jpg',contain:1,lema:'O fim de um mundo é apenas o primeiro capítulo de outro conhecimento.',
-   txt:['O Culto do Caos, ao qual o Cultista dedicou sua existência: o estudo das artes arcanas, da necromancia e dos mistérios que cercam a vida e a morte.','Seus maiores legados são a Biblioteca, onde se preservam conhecimentos de diferentes eras, e o Codex, registro de descobertas e segredos que poucos ousariam ler.']},
-  {id:'kibo',n:'Kibo',t:'Clã',img:'assets/c/kibo.jpg',contain:1,lema:'',
-   txt:['Clã liderado por Yume Eir, a curandeira. Foi até o povo de Kibo que Aquä Riorr encontrou o caminho depois de ser banido para Valheim.']},
+  {id:'corvos',n:'Clã do Corvo',t:'Clã',img:'assets/c/corvos.jpg',contain:1,lema:'',txt:[]},
+  {id:'lox',n:'Lox Bêbado',t:'Guilda & Taverna',img:'assets/c/lox.jpg',contain:1,lema:'',txt:[]},
+  {id:'culto',n:'O Culto',t:'Culto',img:'assets/c/culto.jpg',contain:1,lema:'',txt:[]},
+  {id:'kibo',n:'Kibo',t:'Clã',img:'assets/c/kibo.jpg',contain:1,lema:'',txt:[]},
   {id:'serpentes',n:'Clã da Serpente',t:'Clã',img:'assets/c/serpentes.jpg',contain:1,lema:'',txt:[]},
   {id:'wolves',n:'Lost Wolves',t:'Clã',img:'assets/c/wolves.jpg',lema:'',txt:[]},
   {id:'phantom',n:'Phantom Fleet',t:'Clã',img:'assets/c/phantom.jpg',contain:1,lema:'',txt:[]},
   {id:'cobrebigode',n:'Cobrebigode',t:'Clã',img:'assets/c/cobrebigode.jpg',contain:1,lema:'',txt:[]},
   {id:'colinas',n:'Colinas de Ferro',t:'Clã',img:'assets/c/colinas.jpg',contain:1,lema:'',txt:[]}
  ],
- locais:[
-  {id:'taverna-lox',n:'Taverna do Lox Bêbado',t:'Taverna',img:IMG('forseti'),txt:['A taverna de Forseti, ponto de encontro de viajantes, guerreiros e aventureiros em busca de descanso, boas histórias e uma mesa farta. Também é a sede da guilda do Lox Bêbado.'],f:{Dono:'Forseti'}},
-  {id:'biblioteca-cult',n:'A Biblioteca',t:'Biblioteca',img:IMG('cultista'),txt:['Um dos maiores legados do Cultista: o lugar onde ele preserva conhecimentos de diferentes eras. Dizem que nem tudo guardado ali deveria ser lido.'],f:{Guardião:'Cultista'}}
- ],
+ locais:[],
  itens:[
   {id:'runas',n:'Runas',t:'Moeda',img:'assets/i-runas.jpg',contain:1,txt:['Moeda dos Pacotes de Patrono. Vem em quantidades de 100 a 900 conforme o pacote.']},
   {id:'machado',n:'Machado do Patrono',t:'Ferramenta',img:'assets/i-machado.jpg',contain:1,txt:['Machado exclusivo dos patronos de Pandherya. Incluído em todos os pacotes.']},
@@ -456,19 +452,10 @@ const DATA={
   {id:'bau',n:'Baú do Patrono',t:'Mobília',img:'assets/i-bau.jpg',contain:1,txt:['Baú exclusivo para a base do patrono. A partir do pacote de R$ 35.']},
   {id:'ovo',n:'Ovo de Besouro',t:'Montaria',img:'assets/i-ovo.jpg',contain:1,txt:['Choca um besouro de montaria. A partir do pacote de R$ 50.']},
   {id:'trono',n:'Trono de Patrono',t:'Mobília',img:'assets/i-trono.jpg',contain:1,txt:['Trono de ossos e caveiras para o salão do patrono. Exclusivo do pacote de R$ 100.']},
-  {id:'dracko',n:'Dracko',t:'Pet',img:'assets/i-dracko.jpg',contain:1,txt:['Pequeno dragão de estimação. Exclusivo do pacote de R$ 100.']},
-  {id:'codex',n:'O Codex',t:'Relíquia',img:IMG('cultista'),txt:['Registro das descobertas, experiências e segredos do Cultista — incluindo aqueles que podem revelar como derrotá-lo.'],f:{Autor:'Cultista'}}
+  {id:'dracko',n:'Dracko',t:'Pet',img:'assets/i-dracko.jpg',contain:1,txt:['Pequeno dragão de estimação. Exclusivo do pacote de R$ 100.']}
  ],
  lore:[
-  {id:'season7',n:'7ª Temporada: A Grande Ironia',t:'Temporada',img:'assets/season7.jpg',txt:['A temporada atual de Pandherya. Os registros desta era ainda estão sendo escritos.']},
-  {id:'decimo',n:'O Décimo Mundo',t:'Mundo',img:'assets/fiorde.jpg',txt:['Para lá o Pai de Todos convocou os guerreiros caídos. Sigurdr esteve entre os primeiros chamados, e foi ao Décimo Mundo que Ubbe chegou após a morte.']},
-  {id:'vozes',n:'As Sete Vozes de Loki',t:'Maldição',img:IMG('floki'),txt:['Presente de Loki a Floki: sete vozes, cada uma representando um dos pecados, capazes de anunciar a presença de pecadores. Desde então, a mente de Floki jamais encontrou silêncio.']},
-  {id:'templarios',n:'A Queda dos Templários',t:'Crônica',img:IMG('floki'),txt:['Por seis meses Floki viveu infiltrado entre os Templários, como sombra de Sigurdr. O que se seguiu foi a queda de todo um reino.']},
-  {id:'incidente',n:'O Incidente do Lox Bêbado',t:'Crônica',img:IMG('ubbe'),txt:['A noite em que a fúria de Ubbe deixou o Lox Bêbado em ruínas. Depois dela, um misterioso ancião ensinou-lhe a abandonar o aço e lutar com os próprios punhos.']},
-  {id:'raiz',n:'A Raiz da Árvore do Mundo',t:'Crônica',img:IMG('aqua'),txt:['Aquä Riorr foi acusado de destruir uma raiz da Árvore do Mundo. Injustamente, ele jura. Como castigo, foi banido para Valheim.']},
-  {id:'doenca',n:'A Doença Terrível',t:'Crônica',img:IMG('yume'),txt:['Uma doença terrível se espalhou pelo mundo. Com os ensinamentos de sua Obasan, Eirko, Yume Eir ajudou a salvar muitas vidas.']},
-  {id:'serpente-etyr',n:'A Serpente que Não Esquece',t:'Crônica',img:IMG('etyr'),txt:['Uma serpente marinha destruiu o barco de Etyr. Ele escapou por pouco — e ainda fez um gesto obsceno para a criatura, que aparentemente não pretende esquecer o ocorrido.']},
-  {id:'chegada',n:'Os Corvos Estão Chegando',t:'Crônica',img:IMG('sigurdr'),txt:['A notícia que corre por Pandherya e que trouxe Floki de volta: o Clã do Corvo se aproxima.']}
+  {id:'season7',n:'7ª Temporada: A Grande Ironia',t:'Temporada',img:'assets/season7.jpg',txt:['A temporada atual de Pandherya. Os registros desta era ainda estão sendo escritos.']}
  ]
 };
 const PACKS=[
@@ -542,7 +529,7 @@ Object.entries(LISTS).forEach(([cat,[icon,title,sub,ph]])=>{
   const g=s.querySelector('.grid'),q=s.querySelector('input');
   const draw=()=>{const t=q.value.trim().toLowerCase();
     const list=DATA[cat].filter(it=>!t||[it.n,it.t,it.s,it.ep,...(it.txt||[])].join(' ').toLowerCase().includes(t));
-    g.innerHTML=list.length?list.map(it=>cardHTML(cat,it)).join(''):'<div class="empty"><h4>Nada encontrado</h4><p>Tente outro nome.</p></div>';};
+    g.innerHTML=list.length?list.map(it=>cardHTML(cat,it)).join(''):t?'<div class="empty"><h4>Nada encontrado</h4><p>Tente outro nome.</p></div>':'<div class="empty"><h4>Em breve</h4><p>Os registros desta seção ainda estão sendo escritos.</p></div>';};
   q.addEventListener('input',draw);draw();
   s.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>setReading(b.dataset.mode==='read')));
 });
