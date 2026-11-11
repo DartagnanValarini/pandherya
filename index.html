@@ -154,12 +154,12 @@ img{max-width:100%}
 .pin{position:absolute;transform:translate(-50%,-100%);width:34px;height:42px;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));transition:transform .15s}
 .pin::before{content:"";position:absolute;left:3px;top:0;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:radial-gradient(circle at 40% 40%,#2a1c0c,#0c0805);border:2px solid var(--gold)}
 .pin::after{content:"";position:absolute;left:50%;bottom:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#ffb54a;box-shadow:0 0 10px 3px rgba(255,170,60,.75);animation:pinglow 2.4s ease-in-out infinite}
-.pin span{position:absolute;left:0;right:0;top:5px;text-align:center;font-family:var(--display);font-size:14px;color:var(--gold);font-weight:600}
+.pin i{position:absolute;left:12px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--gold);opacity:.9}
 .pin:hover,.pin:focus-visible{transform:translate(-50%,-100%) scale(1.15);outline:none}
 @keyframes pinglow{50%{box-shadow:0 0 16px 6px rgba(255,170,60,.9)}}
 .maphint{text-align:center;color:var(--muted);font-size:13px;margin:12px 0 0}
 .tip.pt{transform:translate(-50%,-100%)}
-@media (max-width:700px){.pin{width:24px;height:30px}.pin::before{width:20px;height:20px;left:2px}.pin span{font-size:11px;top:3px}}
+@media (max-width:700px){.pin{width:24px;height:30px}.pin::before{width:20px;height:20px;left:2px}}
 .mapbox{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#151514}
 .mapbox canvas{display:block;width:100%;height:auto;aspect-ratio:16/10;filter:saturate(.8)}
 .mapnote{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;padding:22px 28px;background:rgba(6,8,15,.82);border:1px solid var(--gold-dim);border-radius:10px;max-width:86%}
@@ -479,7 +479,7 @@ const DATA={
   {id:'ferraria',num:6,x:50.00,y:20.62,n:'Ferraria',t:'Vila de Pandherya',img:'assets/mapa/ferraria-1.jpg',fotos:['assets/mapa/ferraria-1.jpg','assets/mapa/ferraria-2.jpg'],txt:[]},
   {id:'apotecaria',num:7,x:60.38,y:19.96,n:'Apotecária',t:'Vila de Pandherya',img:'assets/mapa/apotecaria-1.jpg',fotos:['assets/mapa/apotecaria-1.jpg','assets/mapa/apotecaria-2.jpg'],txt:[]},
   {id:'alfaiate',num:8,x:75.31,y:16.85,n:'Alfaiate',t:'Vila de Pandherya',img:'assets/mapa/alfaiate-1.jpg',fotos:['assets/mapa/alfaiate-1.jpg','assets/mapa/alfaiate-2.jpg'],txt:[]},
-  {id:'hall-do-jarl',num:9,x:50.00,y:67.07,n:'Hall do Jarl',t:'Vila de Pandherya',img:'assets/mapa/hall-do-jarl-1.jpg',fotos:['assets/mapa/hall-do-jarl-1.jpg'],txt:[]},
+  {id:'hall-do-jarl',num:9,x:50.00,y:67.07,n:'Hall do Jarl',t:'Vila de Pandherya',img:'assets/mapa/hall-do-jarl-1.jpg',fotos:['assets/mapa/hall-do-jarl-1.jpg','assets/mapa/hall-do-jarl-2.jpg','assets/mapa/hall-do-jarl-3.jpg','assets/mapa/hall-do-jarl-4.jpg'],txt:[]},
   {id:'banco',num:10,x:85.75,y:67.63,n:'Banco',t:'Vila de Pandherya',img:'assets/mapa/banco-1.jpg',fotos:['assets/mapa/banco-1.jpg'],txt:[]},
   {id:'casa-irmaos-selina',num:11,x:66.75,y:90.91,n:'Casa dos Irmãos Selina',t:'Vila de Pandherya',img:'assets/mapa/casa-irmaos-selina-1.jpg',fotos:['assets/mapa/casa-irmaos-selina-1.jpg'],txt:[]},
   {id:'bruxa',num:12,x:94.69,y:93.68,n:'Bruxa',t:'Vila de Pandherya',img:'assets/mapa/bruxa-1.jpg',fotos:['assets/mapa/bruxa-1.jpg'],txt:[]},
@@ -609,7 +609,7 @@ applyReading();
 /* ---- mapa ---- */
 page('mapa','map','CARTOGRAFIA','A vila de Pandherya',`
   <div class="mapbox vila"><img src="assets/mapa/vila.jpg" alt="Mapa da vila de Pandherya">
-   ${DATA.mapa.map(m=>`<button class="pin" style="left:${m.x}%;top:${m.y}%" data-ponto="${m.id}" aria-label="${m.n||m.t+' '+m.num}" data-ptip="${m.n||m.t+' nº '+m.num}"><span>${m.num}</span></button>`).join('')}</div>
+   ${DATA.mapa.map(m=>`<button class="pin" style="left:${m.x}%;top:${m.y}%" data-ponto="${m.id}" aria-label="${m.n||m.t+' '+m.num}" data-ptip="${m.n||m.t+' nº '+m.num}"><i></i></button>`).join('')}</div>
   <p class="maphint">Clique nos marcadores para conhecer cada lugar da vila.</p>`);
 views.mapa.addEventListener('click',e=>{const b=e.target.closest('[data-ponto]');if(b)openDetail('mapa',b.dataset.ponto);});
 views.mapa.querySelectorAll('.pin').forEach(el=>{
