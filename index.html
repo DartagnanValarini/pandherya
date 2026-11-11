@@ -148,6 +148,8 @@ img{max-width:100%}
 .members img{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:50% 20%}
 
 /* Map */
+.mbox.wide{grid-template-columns:1fr;width:min(820px,100%)}.mbox.wide .thumb{aspect-ratio:16/9;min-height:0;max-height:none}.mbox.wide .thumb img{width:100%;height:100%;object-fit:cover}
+.fotos{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.fotos button{width:92px;height:56px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;background:none;opacity:.65}.fotos button.on,.fotos button:hover{opacity:1;border-color:var(--gold)}.fotos img{width:100%;height:100%;object-fit:cover;display:block}
 .mapbox.vila img{display:block;width:100%;height:auto}
 .pin{position:absolute;transform:translate(-50%,-100%);width:34px;height:42px;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));transition:transform .15s}
 .pin::before{content:"";position:absolute;left:3px;top:0;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:radial-gradient(circle at 40% 40%,#2a1c0c,#0c0805);border:2px solid var(--gold)}
@@ -469,20 +471,19 @@ const DATA={
  /* Pontos do mapa da vila (x,y em % da imagem assets/mapa/vila.jpg). n = nome, txt = descrição, img = foto.
     Sem nome/descrição ainda: o popup mostra o recorte do mapa e "ainda será contada". Não inventar textos. */
  mapa:[
-  {id:'ponto-1',num:1,x:28.44,y:31.37,n:'',t:'Construção',img:'assets/mapa/ponto-1.jpg',txt:[]},
-  {id:'ponto-2',num:2,x:9.69,y:45.79,n:'',t:'Construção',img:'assets/mapa/ponto-2.jpg',txt:[]},
-  {id:'ponto-3',num:3,x:9.19,y:62.97,n:'',t:'Construção',img:'assets/mapa/ponto-3.jpg',txt:[]},
-  {id:'ponto-4',num:4,x:17.19,y:69.29,n:'',t:'Construção',img:'assets/mapa/ponto-4.jpg',txt:[]},
-  {id:'ponto-5',num:5,x:29.19,y:72.06,n:'',t:'Construção',img:'assets/mapa/ponto-5.jpg',txt:[]},
-  {id:'ponto-6',num:6,x:43.94,y:40.80,n:'',t:'Construção',img:'assets/mapa/ponto-6.jpg',txt:[]},
-  {id:'ponto-7',num:7,x:50.00,y:20.62,n:'',t:'Construção',img:'assets/mapa/ponto-7.jpg',txt:[]},
-  {id:'ponto-8',num:8,x:60.38,y:19.96,n:'',t:'Construção',img:'assets/mapa/ponto-8.jpg',txt:[]},
-  {id:'ponto-9',num:9,x:75.31,y:16.85,n:'',t:'Construção',img:'assets/mapa/ponto-9.jpg',txt:[]},
-  {id:'ponto-10',num:10,x:92.12,y:33.26,n:'',t:'Torre',img:'assets/mapa/ponto-10.jpg',txt:[]},
-  {id:'ponto-11',num:11,x:61.69,y:48.00,n:'',t:'Monumento',img:'assets/mapa/ponto-11.jpg',txt:[]},
-  {id:'ponto-12',num:12,x:50.00,y:67.07,n:'',t:'Construção',img:'assets/mapa/ponto-12.jpg',txt:[]},
-  {id:'ponto-13',num:13,x:85.75,y:67.63,n:'',t:'Construção',img:'assets/mapa/ponto-13.jpg',txt:[]},
-  {id:'ponto-14',num:14,x:66.75,y:90.91,n:'',t:'Construção',img:'assets/mapa/ponto-14.jpg',txt:[]}
+  {id:'taverna',num:1,x:28.44,y:31.37,n:'Taverna',t:'Vila de Pandherya',img:'assets/mapa/taverna-1.jpg',fotos:['assets/mapa/taverna-1.jpg','assets/mapa/taverna-2.jpg','assets/mapa/taverna-3.jpg'],txt:[]},
+  {id:'bazar',num:2,x:9.69,y:45.79,n:'Bazar',t:'Vila de Pandherya',img:'assets/mapa/bazar-1.jpg',fotos:['assets/mapa/bazar-1.jpg'],txt:[]},
+  {id:'armazem',num:3,x:17.19,y:69.29,n:'Armazém',t:'Vila de Pandherya',img:'assets/mapa/armazem-1.jpg',fotos:['assets/mapa/armazem-1.jpg','assets/mapa/armazem-2.jpg'],txt:[]},
+  {id:'hildir-haldor',num:4,x:29.19,y:72.06,n:'Hildir e Haldor',t:'Vila de Pandherya',img:'assets/mapa/hildir-haldor-1.jpg',fotos:['assets/mapa/hildir-haldor-1.jpg','assets/mapa/hildir-haldor-2.jpg','assets/mapa/hildir-haldor-3.jpg'],txt:[]},
+  {id:'cozinheiro',num:5,x:43.94,y:40.80,n:'Cozinheiro',t:'Vila de Pandherya',img:'assets/mapa/cozinheiro-1.jpg',fotos:['assets/mapa/cozinheiro-1.jpg','assets/mapa/cozinheiro-2.jpg'],txt:[]},
+  {id:'ferraria',num:6,x:50.00,y:20.62,n:'Ferraria',t:'Vila de Pandherya',img:'assets/mapa/ferraria-1.jpg',fotos:['assets/mapa/ferraria-1.jpg','assets/mapa/ferraria-2.jpg'],txt:[]},
+  {id:'apotecaria',num:7,x:60.38,y:19.96,n:'Apotecária',t:'Vila de Pandherya',img:'assets/mapa/apotecaria-1.jpg',fotos:['assets/mapa/apotecaria-1.jpg','assets/mapa/apotecaria-2.jpg'],txt:[]},
+  {id:'alfaiate',num:8,x:75.31,y:16.85,n:'Alfaiate',t:'Vila de Pandherya',img:'assets/mapa/alfaiate-1.jpg',fotos:['assets/mapa/alfaiate-1.jpg','assets/mapa/alfaiate-2.jpg'],txt:[]},
+  {id:'hall-do-jarl',num:9,x:50.00,y:67.07,n:'Hall do Jarl',t:'Vila de Pandherya',img:'assets/mapa/hall-do-jarl-1.jpg',fotos:['assets/mapa/hall-do-jarl-1.jpg'],txt:[]},
+  {id:'banco',num:10,x:85.75,y:67.63,n:'Banco',t:'Vila de Pandherya',img:'assets/mapa/banco-1.jpg',fotos:['assets/mapa/banco-1.jpg'],txt:[]},
+  {id:'casa-irmaos-selina',num:11,x:66.75,y:90.91,n:'Casa dos Irmãos Selina',t:'Vila de Pandherya',img:'assets/mapa/casa-irmaos-selina-1.jpg',fotos:['assets/mapa/casa-irmaos-selina-1.jpg'],txt:[]},
+  {id:'bruxa',num:12,x:94.69,y:93.68,n:'Bruxa',t:'Vila de Pandherya',img:'assets/mapa/bruxa-1.jpg',fotos:['assets/mapa/bruxa-1.jpg'],txt:[]},
+  {id:'barqueiro',num:13,x:4.38,y:96.45,n:'Barco',t:'Vila de Pandherya',img:'assets/mapa/barqueiro-1.jpg',fotos:['assets/mapa/barqueiro-1.jpg'],txt:[]}
  ],
  lore:[
   {id:'season7',n:'7ª Temporada: A Grande Ironia',t:'Temporada',img:'assets/season7.jpg',txt:['A temporada atual de Pandherya. Os registros desta era ainda estão sendo escritos.']}
@@ -578,12 +579,13 @@ function openDetail(cat,id){
   const quote=it.q||it.lema;
   let members='';
   if(cat==='ordens'){const ms=DATA.personagens.filter(p=>p.cla===it.id);if(ms.length)members=`<div class="kicker" style="margin-top:20px">Membros</div><div class="members">${ms.map(m=>`<button data-open="personagens:${m.id}"><img src="${m.img}" alt="">${m.n}</button>`).join('')}</div>`;}
-  modal.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-label="${it.n}"><div class="thumb">${pic(it)}<span class="chip">${CAT[cat]||'Mapa da Vila'}</span></div>
-   <div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">${chip}</div><h3>${it.n||(it.t+' nº '+it.num)}</h3>${it.ep?`<h4>${it.ep}</h4>`:''}<div class="meta">${sub}</div>${body}${quote?`<div class="quote">“${quote}”</div>`:''}${cat==='personagens'&&audioOf(it.id)?`<div class="kicker" style="margin-top:18px">Ouça a história</div><audio controls preload="none" src="${audioOf(it.id)}" style="width:100%;margin-top:6px"></audio>`:''}${dl}${members}</div></div>`;
+  modal.innerHTML=`<div class="mbox${cat==='mapa'?' wide':''}" role="dialog" aria-modal="true" aria-label="${it.n}"><div class="thumb">${pic(it)}<span class="chip">${CAT[cat]||'Mapa da Vila'}</span></div>
+   <div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">${chip}</div><h3>${it.n||(it.t+' nº '+it.num)}</h3>${it.ep?`<h4>${it.ep}</h4>`:''}<div class="meta">${sub}</div>${body}${it.fotos&&it.fotos.length>1?`<div class="fotos">${it.fotos.map((f,i)=>`<button data-foto="${f}" class="${i?'':'on'}" aria-label="Foto ${i+1}"><img src="${f}" alt=""></button>`).join('')}</div>`:''}${quote?`<div class="quote">“${quote}”</div>`:''}${cat==='personagens'&&audioOf(it.id)?`<div class="kicker" style="margin-top:18px">Ouça a história</div><audio controls preload="none" src="${audioOf(it.id)}" style="width:100%;margin-top:6px"></audio>`:''}${dl}${members}</div></div>`;
   modal.hidden=false;modal.querySelector('.mbox').scrollTop=0;document.getElementById('mclose').focus();
 }
 function closeModal(){modal.hidden=true;modal.innerHTML='';}
 modal.addEventListener('click',e=>{
+  const f=e.target.closest('[data-foto]');if(f){const im=modal.querySelector('.thumb img');if(im)im.src=f.dataset.foto;modal.querySelectorAll('[data-foto]').forEach(x=>x.classList.toggle('on',x===f));return;}
   const o=e.target.closest('[data-open]');if(o){e.preventDefault();const [c,i]=o.dataset.open.split(':');openDetail(c,i);return;}
   if(e.target===modal||e.target.id==='mclose')closeModal();});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal();});
@@ -608,7 +610,7 @@ applyReading();
 page('mapa','map','CARTOGRAFIA','A vila de Pandherya',`
   <div class="mapbox vila"><img src="assets/mapa/vila.jpg" alt="Mapa da vila de Pandherya">
    ${DATA.mapa.map(m=>`<button class="pin" style="left:${m.x}%;top:${m.y}%" data-ponto="${m.id}" aria-label="${m.n||m.t+' '+m.num}" data-ptip="${m.n||m.t+' nº '+m.num}"><span>${m.num}</span></button>`).join('')}</div>
-  <p class="maphint">Clique nos marcadores para conhecer cada construção da vila.</p>`);
+  <p class="maphint">Clique nos marcadores para conhecer cada lugar da vila.</p>`);
 views.mapa.addEventListener('click',e=>{const b=e.target.closest('[data-ponto]');if(b)openDetail('mapa',b.dataset.ponto);});
 views.mapa.querySelectorAll('.pin').forEach(el=>{
   el.addEventListener('mouseenter',()=>{const r=el.getBoundingClientRect();tip.textContent=el.dataset.ptip;tip.style.top=(r.top-8)+'px';tip.style.left=(r.left+r.width/2)+'px';tip.classList.add('show','pt');});
