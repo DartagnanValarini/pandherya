@@ -151,15 +151,12 @@ img{max-width:100%}
 .mbox.wide{grid-template-columns:1fr;width:min(820px,100%)}.mbox.wide .thumb{aspect-ratio:16/9;min-height:0;max-height:none}.mbox.wide .thumb img{width:100%;height:100%;object-fit:cover}
 .fotos{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.fotos button{width:92px;height:56px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;background:none;opacity:.65}.fotos button.on,.fotos button:hover{opacity:1;border-color:var(--gold)}.fotos img{width:100%;height:100%;object-fit:cover;display:block}
 .mapbox.vila img{display:block;width:100%;height:auto}
-.pin{position:absolute;transform:translate(-50%,-100%);width:34px;height:42px;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));transition:transform .15s}
-.pin::before{content:"";position:absolute;left:3px;top:0;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:radial-gradient(circle at 40% 40%,#2a1c0c,#0c0805);border:2px solid var(--gold)}
-.pin::after{content:"";position:absolute;left:50%;bottom:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#ffb54a;box-shadow:0 0 10px 3px rgba(255,170,60,.75);animation:pinglow 2.4s ease-in-out infinite}
-.pin i{position:absolute;left:12px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--gold);opacity:.9}
-.pin:hover,.pin:focus-visible{transform:translate(-50%,-100%) scale(1.15);outline:none}
-@keyframes pinglow{50%{box-shadow:0 0 16px 6px rgba(255,170,60,.9)}}
 .maphint{text-align:center;color:var(--muted);font-size:13px;margin:12px 0 0}
+.pin{position:absolute;transform:translate(-50%,-100%);width:40px;height:43px;padding:0;border:0;cursor:pointer;background:url(assets/mapa/pin.png) center bottom/contain no-repeat;filter:drop-shadow(0 4px 6px rgba(0,0,0,.65));transition:transform .15s,filter .15s;transform-origin:50% 100%}
+.pin:hover,.pin:focus-visible{transform:translate(-50%,-100%) scale(1.18);filter:drop-shadow(0 0 10px rgba(255,180,70,.7)) drop-shadow(0 4px 6px rgba(0,0,0,.6));outline:none}
+.mapbox.vila img.estandarte{position:absolute;left:2.5%;top:0;width:9.5%;height:auto;min-width:54px;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
+@media (max-width:700px){.pin{width:22px;height:24px}.mapbox.vila img.estandarte{min-width:0;width:8%}}
 .tip.pt{transform:translate(-50%,-100%)}
-@media (max-width:700px){.pin{width:24px;height:30px}.pin::before{width:20px;height:20px;left:2px}}
 .mapbox{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#151514}
 .mapbox canvas{display:block;width:100%;height:auto;aspect-ratio:16/10;filter:saturate(.8)}
 .mapnote{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;padding:22px 28px;background:rgba(6,8,15,.82);border:1px solid var(--gold-dim);border-radius:10px;max-width:86%}
@@ -608,8 +605,8 @@ applyReading();
 
 /* ---- mapa ---- */
 page('mapa','map','CARTOGRAFIA','A vila de Pandherya',`
-  <div class="mapbox vila"><img src="assets/mapa/vila.jpg" alt="Mapa da vila de Pandherya">
-   ${DATA.mapa.map(m=>`<button class="pin" style="left:${m.x}%;top:${m.y}%" data-ponto="${m.id}" aria-label="${m.n||m.t+' '+m.num}" data-ptip="${m.n||m.t+' nº '+m.num}"><i></i></button>`).join('')}</div>
+  <div class="mapbox vila"><img src="assets/mapa/vila.jpg" alt="Mapa da vila de Pandherya"><img class="estandarte" src="assets/mapa/estandarte.png" alt="">
+   ${DATA.mapa.map(m=>`<button class="pin" style="left:${m.x}%;top:${m.y}%" data-ponto="${m.id}" aria-label="${m.n||m.t+' '+m.num}" data-ptip="${m.n||m.t+' nº '+m.num}"></button>`).join('')}</div>
   <p class="maphint">Clique nos marcadores para conhecer cada lugar da vila.</p>`);
 views.mapa.addEventListener('click',e=>{const b=e.target.closest('[data-ponto]');if(b)openDetail('mapa',b.dataset.ponto);});
 views.mapa.querySelectorAll('.pin').forEach(el=>{
