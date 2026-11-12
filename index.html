@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pandherya</title>
-<meta name="description" content="Pandherya — enciclopédia oficial do servidor de Valheim: personagens, clãs, lendas e pacotes de patrono da 8ª Temporada, Depois do Fim.">
+<meta name="description" content="Pandherya — enciclopédia oficial do servidor de Valheim: personagens, clãs, lendas e pacotes de doação da 8ª Temporada, Depois do Fim.">
 <meta property="og:title" content="Pandherya - World Compendium">
 <meta property="og:type" content="website">
 <meta property="og:image" content="assets/season8.jpg">
@@ -184,7 +184,7 @@ img{max-width:100%}
 .board ol{margin:0;padding-left:20px;font-variant-numeric:tabular-nums;color:var(--muted);line-height:1.9}
 .gold-btn{display:inline-block;padding:11px 22px;border:1px solid var(--gold-dim);background:var(--gold-bg);color:var(--gold);border-radius:6px;cursor:pointer;letter-spacing:.2em;font-size:11px;text-decoration:none}
 
-/* Tavern / patrono */
+/* Tavern / doação */
 .tav{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;min-width:0}
 .box h4{margin:0 0 14px;font-family:var(--display);font-weight:500;color:var(--gold);font-size:18px}
@@ -366,7 +366,7 @@ const CONFIG={
   ip:'IP.DO.SERVIDOR:2456',          // endereço real do servidor (não aparece mais no site)
   discordUrl:'https://discord.gg/pYbCE9rff', // convite do Discord (Taverna)
   liveUrl:'https://www.twitch.tv',    // canal da live
-  patronoUrl:'https://discord.gg/wwgMwdNJ4V', // ticket do Discord para os pacotes
+  doacaoUrl:'https://discord.gg/wwgMwdNJ4V', // ticket do Discord para as doações
   flkUrl:'https://www.flkstudios.com.br',                          // site da FLK! STUDIOS (crédito no rodapé)                     // link de pagamento / Discord para os pacotes
   // banco de dados do mural e do placar (Supabase). A chave publicável pode ficar no site.
   dbUrl:'https://twcqlcqeicjrtobirbro.supabase.co',
@@ -397,6 +397,7 @@ const I={
  compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
  mug:'<path d="M5 8h10v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M15 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2M5 5h10v3H5z"/><path d="M8 12v6M11 12v6"/>',
  live:'<circle cx="12" cy="12" r="2"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
+ gift:'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12M12 8c-1.5-3-5-4-5-1.5S10 8 12 8zM12 8c1.5-3 5-4 5-1.5S14 8 12 8z"/>',
  crown:'<path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/>',
  music:'<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
  grid:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
@@ -509,8 +510,8 @@ const DATA={
  ],
  locais:[],
  itens:[
-  {id:'runas',n:'Runas Prata',t:'Moeda',img:'assets/i-runas.jpg',contain:1,txt:['Moeda dos Pacotes de Patrono. Vem em quantidades de 100 a 900 conforme o pacote.']},
-  {id:'territorio',n:'Aumentar Território',t:'Benefício',img:'assets/i-territorio.jpg',contain:1,txt:['Amplia o território do patrono. Incluído em todos os pacotes.']},
+  {id:'runas',n:'Runas Prata',t:'Moeda',img:'assets/i-runas.jpg',contain:1,txt:['Moeda dos Pacotes de Doação. Vem em quantidades de 100 a 900 conforme o pacote.']},
+  {id:'territorio',n:'Aumentar Território',t:'Benefício',img:'assets/i-territorio.jpg',contain:1,txt:['Amplia o território de quem doa. Incluído em todos os pacotes.']},
   {id:'emissario',n:'Emissário do Banco',t:'Benefício',img:'assets/i-emissario.jpg',contain:1,txt:['Emissário do Banco. A partir do pacote de R$ 35.']},
   {id:'javali',n:'Montaria Javali',t:'Montaria',img:'assets/i-javali.jpg',contain:1,txt:['Javali de montaria. A partir do pacote de R$ 50.']},
   {id:'roupa-f',n:'Roupa Feminina',t:'Equipamento',img:'assets/i-roupa-f.jpg',contain:1,txt:['Roupa feminina exclusiva. Exclusiva do pacote de R$ 100.']},
@@ -609,7 +610,7 @@ const pic=(it,cls='')=>it.img?`<img src="${it.img}" alt="" loading="lazy" class=
 const NAV=[
  ['inicio','home','Início'],['mapa','map','Mapa'],['locais','pin','Locais'],['personagens','users','Personagens'],['ordens','shield','Ordens & Casas'],
  ['bestiario','skull','Bestiário'],['itens','sword','Itens'],['lore','book','Lore'],['biblioteca','scroll','Biblioteca'],['explorador','compass','Quem Disse?'],['enviar','quill','Inclua sua História'],
- '-',['taverna','mug','Taverna','wiki'],['patrono','crown','Patrono'],['live','live','Live','live'],['narrador','music','Narrador']
+ '-',['taverna','mug','Taverna','wiki'],['doar','gift','Doar'],['live','live','Live','live'],['narrador','music','Narrador']
 ];
 const nav=document.getElementById('nav');
 nav.innerHTML=NAV.map(n=>n==='-'?'<hr>':`<a href="#${n[0]}" data-r="${n[0]}" data-tip="${n[2]}" aria-label="${n[2]}" class="${n[3]||''}">${svg(n[1])}</a>`).join('');
@@ -758,16 +759,16 @@ function drawWorld(){}
 }
 function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-/* ---- patrono ---- */
+/* ---- doar ---- */
 {
  const it=k=>byId('itens',k);
- page('patrono','crown','Pacotes de Patrono','Apoie Pandherya e receba itens exclusivos!',`
+ page('doar','gift','Pacotes de Doação','Apoie Pandherya e receba itens exclusivos!',`
   <div class="packs">${PACKS.map(p=>`<div class="pack ${p.top?'top':''}">
     <div class="price"><small>R$</small><b>${p.p}</b></div>
     <div class="runes"><img src="assets/i-runas.jpg" alt="">${p.r} runas prata</div>
     <ul>${p.i.map(k=>`<li><img src="${it(k).img}" alt="">${it(k).n}</li>`).join('')}</ul></div>`).join('')}</div>
-  <div class="packs-foot"><span>Mais diversão, mais aventuras, mais Pandherya! Fortaleça sua lenda!</span><a class="gold-btn" href="${CONFIG.patronoUrl}" target="_blank" rel="noopener">DOAR</a></div>
-  <div class="banner" style="margin-top:26px;max-width:960px;margin-inline:auto"><img style="max-height:none" src="assets/patrono.jpg" alt="Tabela dos Pacotes de Patrono"></div>`);
+  <div class="packs-foot"><span>Mais diversão, mais aventuras, mais Pandherya! Fortaleça sua lenda!</span><a class="gold-btn" href="${CONFIG.doacaoUrl}" target="_blank" rel="noopener">DOAR</a></div>
+  <div class="banner" style="margin-top:26px;max-width:960px;margin-inline:auto"><img style="max-height:none" src="assets/doacao.jpg" alt="Tabela dos Pacotes de Doação"></div>`);
 }
 
 /* ---- taverna ---- */
@@ -785,7 +786,7 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
   <div class="box" style="margin-top:20px"><h4>Entre em Pandherya</h4>
    <p style="margin:0;color:var(--muted);line-height:1.6;max-width:62ch">Entre no nosso Discord e venha fazer parte da 8ª Temporada.</p>
    <div class="copyline"><code id="ip">${CONFIG.discordUrl}</code><button class="tbtn" id="copyip">Copiar link</button></div>
-   <p style="margin:14px 0 0;display:flex;flex-wrap:wrap;gap:10px"><a class="gold-btn" href="${CONFIG.discordUrl}" target="_blank" rel="noopener">ENTRAR NO DISCORD</a><a class="gold-btn" href="#patrono">VER PACOTES DE PATRONO</a></p></div>`);
+   <p style="margin:14px 0 0;display:flex;flex-wrap:wrap;gap:10px"><a class="gold-btn" href="${CONFIG.discordUrl}" target="_blank" rel="noopener">ENTRAR NO DISCORD</a><a class="gold-btn" href="#doar">VER PACOTES DE DOAÇÃO</a></p></div>`);
  s.addEventListener('click',e=>{const a=e.target.closest('[data-open-p]');if(a){e.preventDefault();openDetail('personagens',a.dataset.openP);}});
  const mural=s.querySelector('#mural');
  const st=s.querySelector('#t-status');
@@ -1146,7 +1147,7 @@ document.getElementById('loginBtn').addEventListener('click',()=>{
    ========================================================= */
 views.inicio=document.getElementById('v-inicio');
 function route(){
-  let r=(location.hash||'#inicio').slice(1);if(!views[r])r='inicio';
+  let r=(location.hash||'#inicio').slice(1);if(r==='patrono')r='doar';if(!views[r])r='inicio';
   Object.entries(views).forEach(([k,v])=>v.hidden=k!==r);
   nav.querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.dataset.r===r&&!a.classList.contains('live')&&!a.classList.contains('wiki')));
   if(r==='mapa')drawWorld();
