@@ -314,6 +314,24 @@ footer .flk:not([href]){cursor:default}
 .oc-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 .oc-row img{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none}
 .oc-row .nm{flex:1;min-width:0}.oc-row .nm small{display:block;color:var(--muted);font-size:11px}
+.news{margin-bottom:20px}
+.news-top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}
+.news-top h4{margin:0!important;font-size:24px!important;letter-spacing:.06em}
+.news-top span{color:var(--muted);font-size:11px;letter-spacing:.25em;text-transform:uppercase}
+.ed{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;align-items:start}.ed.noimg{grid-template-columns:1fr}
+.ed img{width:100%;border-radius:8px;border:1px solid var(--gold-dim);cursor:zoom-in;display:block}
+.ed .kicker b{color:var(--gold);font-weight:500}
+.ed h3{font-family:var(--display);color:var(--gold);font-size:26px;margin:8px 0 10px;font-weight:600;line-height:1.15;overflow-wrap:anywhere}
+.ed .lead{font-style:italic;color:var(--gold-lt);margin:0 0 12px;line-height:1.6}
+.ed p{line-height:1.7;color:#cfcabd;margin:0 0 10px;overflow-wrap:anywhere}
+.ed .who{color:var(--gold);font-weight:600}
+.eds{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.edc{background:#0a0e1a;border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;text-align:left;padding:0;color:inherit}
+.edc:hover{border-color:var(--gold-dim)}
+.edc img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block}
+.edc div{padding:10px 12px}.edc small{color:var(--muted);font-size:11px}.edc b{display:block;font-family:var(--display);color:var(--gold);font-weight:500;margin-top:3px;overflow-wrap:anywhere}
+footer .vis{display:inline-flex;align-items:center;gap:5px}
+@media (max-width:760px){.ed{grid-template-columns:1fr}}
 .adm-item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:16px}
 .adm-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:14px;color:var(--muted);font-size:12px}
 .adm-head b{color:var(--gold);font-family:var(--display);font-weight:500;font-size:16px;letter-spacing:.05em}
@@ -355,7 +373,7 @@ footer .flk:not([href]){cursor:default}
     </section>
   </main>
 
-  <footer><p class="fnote">Idealizado por Forseti, materializado, escrito em runas e sumonado por Floki — com financiamento ilimitado da base de hidromel do Lox Bêbado. 🍻</p><div class="frow"><a class="soc" href="https://discord.gg/pYbCE9rff" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M8.5 7.5A13 13 0 0 1 12 7a13 13 0 0 1 3.5.5M7 16.5a13 13 0 0 0 10 0"/><path d="M15.5 7.5l.8-1.8c1.6.3 3 .9 4.2 1.8 1.4 3.3 1.8 6.6 1.4 9.8a15 15 0 0 1-4.4 2.2l-1-1.8M8.5 7.5l-.8-1.8c-1.6.3-3 .9-4.2 1.8-1.4 3.3-1.8 6.6-1.4 9.8a15 15 0 0 0 4.4 2.2l1-1.8"/><circle cx="9" cy="13" r="1.2"/><circle cx="15" cy="13" r="1.2"/></svg>Discord</a><a class="soc" href="https://www.instagram.com/pandherya/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg>Instagram</a><span>·</span><span>© Pandherya</span><span>·</span><a href="#privacidade">Política de Privacidade</a><span>·</span><a href="#termos">Termos de Serviço</a><span>·</span><span>Desenvolvido por <a id="flk" class="flk" target="_blank" rel="noopener" aria-label="FLK! STUDIOS">FLK<b>!</b> STUDIOS</a></span></div></footer>
+  <footer><p class="fnote">Idealizado por Forseti, materializado, escrito em runas e sumonado por Floki — com financiamento ilimitado da base de hidromel do Lox Bêbado. 🍻</p><div class="frow"><a class="soc" href="https://discord.gg/pYbCE9rff" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M8.5 7.5A13 13 0 0 1 12 7a13 13 0 0 1 3.5.5M7 16.5a13 13 0 0 0 10 0"/><path d="M15.5 7.5l.8-1.8c1.6.3 3 .9 4.2 1.8 1.4 3.3 1.8 6.6 1.4 9.8a15 15 0 0 1-4.4 2.2l-1-1.8M8.5 7.5l-.8-1.8c-1.6.3-3 .9-4.2 1.8-1.4 3.3-1.8 6.6-1.4 9.8a15 15 0 0 0 4.4 2.2l1-1.8"/><circle cx="9" cy="13" r="1.2"/><circle cx="15" cy="13" r="1.2"/></svg>Discord</a><a class="soc" href="https://www.instagram.com/pandherya/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg>Instagram</a><span>·</span><span class="vis" id="visitas" hidden></span><span id="visitas-sep" hidden>·</span><span>© Pandherya</span><span>·</span><a href="#privacidade">Política de Privacidade</a><span>·</span><a href="#termos">Termos de Serviço</a><span>·</span><span>Desenvolvido por <a id="flk" class="flk" target="_blank" rel="noopener" aria-label="FLK! STUDIOS">FLK<b>!</b> STUDIOS</a></span></div></footer>
 </div>
 <div class="tip" id="tip"></div>
 <div class="modal" id="modal" hidden></div>
@@ -554,6 +572,12 @@ const PACKS=[
    ========================================================= */
 const PUB=p=>p?`${CONFIG.dbUrl}/storage/v1/object/public/publico/${p}`:null;
 const AUDIO_EXTRA={};
+/* jornal: imagem pode estar no site (assets/jornal/...) ou no Supabase (jornal/...) */
+const jornalImg=p=>p?(p.startsWith('assets/')?p:PUB(p)):null;
+const dataLonga=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}};
+function jornalHTML(t){const ps=String(t||'').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean)
+  .map(x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<span class="who">$1</span>').replace(/\n/g,'<br>'));
+  return ps.map((x,i)=>`<p${i===0&&ps.length>1?' class="lead"':''}>${x}</p>`).join('');}
 const ORD=(a,b)=>String(a.n).localeCompare(String(b.n),'pt',{sensitivity:'base'});
 const PARAS=t=>String(t||'').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean).map(x=>esc(x).replace(/\n/g,'<br>'));
 /* cópia do texto oficial, antes das edições feitas pelos admins */
@@ -779,6 +803,7 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 {
  const F=byId('personagens','forseti');
  const s=page('taverna','mug','Taverna do Lox Bêbado','O ponto de encontro dos aventureiros. Beba, conte histórias e deixe sua marca no mural.',`
+  <div class="box news" id="news"><div class="news-top"><h4>Pandherya News</h4><span>O jornal oficial de Pandherya</span></div><div id="news-body"><p style="color:var(--muted);margin:0">Carregando o jornal...</p></div></div>
   <div class="tav">
    <div class="box"><h4>O Taverneiro</h4><div class="host"><img src="${F.img}" alt="Forseti"><div>
      <p>${F.txt[1]}</p><div class="quote" style="margin-top:6px">“${F.q}”</div>
@@ -804,6 +829,19 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
    const btn=e.currentTarget.querySelector('button');btn.disabled=true;st.textContent='Pregando no mural...';
    try{await DB.add('mural',{nome:n.slice(0,24),mensagem:m.slice(0,200)});s.querySelector('#t-msg').value='';st.textContent='Recado pregado no mural.';await draw();}
    catch(err){st.textContent=err.message;}finally{btn.disabled=false;}});
+ /* ---- Pandherya News (jornal da taverna; edições publicadas pelos admins na aba JORNAL) ---- */
+ {
+  const nb=s.querySelector('#news-body');let EDS=[],cur=0;
+  function drawNews(){
+    if(!EDS.length){nb.innerHTML='<p style="color:var(--muted);margin:0">A primeira edição do Pandherya News sai em breve.</p>';return;}
+    const e=EDS[cur],img=jornalImg(e.imagem);
+    nb.innerHTML=`<article class="ed${img?'':' noimg'}">${img?`<img src="${img}" alt="${esc(e.manchete)}" data-zoom>`:''}<div><div class="kicker">${cur===0?'Última edição':'Edição'} · <b>${dataLonga(e.data)}</b></div><h3>${esc(e.manchete)}</h3>${jornalHTML(e.texto)}</div></article>
+     ${EDS.length>1?`<div class="kicker" style="margin:24px 0 10px">${cur===0?'Edições anteriores':'Outras edições'}</div><div class="eds">${EDS.map((x,i)=>i===cur?'':`<button class="edc" data-ed="${i}">${jornalImg(x.imagem)?`<img src="${jornalImg(x.imagem)}" alt="" loading="lazy">`:''}<div><small>${dataLonga(x.data)}</small><b>${esc(x.manchete)}</b></div></button>`).join('')}</div>`:''}`;}
+  nb.addEventListener('click',ev=>{const c=ev.target.closest('[data-ed]');if(c){cur=+c.dataset.ed;drawNews();s.querySelector('#news').scrollIntoView({behavior:'smooth',block:'start'});return;}
+    const z=ev.target.closest('[data-zoom]');if(z){modal.innerHTML=`<div class="mbox guia"><button class="mclose" id="mclose">Fechar</button><img src="${z.getAttribute('src')}" alt="${z.getAttribute('alt')}"></div>`;modal.hidden=false;}});
+  DB.get('jornal','select=id,manchete,data,texto,imagem&order=data.desc,criado_em.desc&limit=60').then(r=>{EDS=r;drawNews();})
+    .catch(()=>{nb.innerHTML='<p style="color:var(--muted);margin:0">Não foi possível carregar o jornal agora.</p>';});
+ }
  s.querySelector('#copyip').addEventListener('click',async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText(s.querySelector('#ip').textContent);b.textContent='Copiado';}catch(_){const r=document.createRange();r.selectNodeContents(s.querySelector('#ip'));getSelection().removeAllRanges();getSelection().addRange(r);b.textContent='Selecionado';}});
  draw();
 }
@@ -905,7 +943,7 @@ async function checarFoto(file,tipo){
 }
 /* foto: personagem fica em 1024 × 1536; brasão até 1200 px; tudo salvo em JPG */
 async function prepFoto(file,tipo){const {im,u}=await lerImagem(file);
-  const max=tipo==='personagem'?REGRAS.fotoH:1200,k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');
+  const max=tipo==='personagem'?REGRAS.fotoH:tipo==='jornal'?1600:1200,k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');
   c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
   const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
   return new Promise((ok,fail)=>c.toBlob(b=>b?ok(b):fail(new Error('Não consegui ler a imagem.')),'image/jpeg',.9));}
@@ -1007,12 +1045,13 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
    const ok=await api('/rest/v1/rpc/is_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>false);
    if(!ok){ses=null;save();return loginView('Esta conta não tem acesso de admin.');}
    root.innerHTML=`<div class="adm-bar">
-     <div class="seg">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
+     <div class="seg">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE'],['jornal','JORNAL']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
      <span class="who">${esc(ses.email||'')} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
    root.querySelectorAll('[data-aba]').forEach(b=>b.addEventListener('click',()=>{aba=b.dataset.aba;try{sessionStorage.setItem('pdy-aba',aba);}catch(e){}listView();}));
    root.querySelector('#adm-out').addEventListener('click',e=>{e.preventDefault();ses=null;save();loginView();});
    const list=root.querySelector('#adm-list');
    if(aba==='nosite')return noSite(list);
+   if(aba==='jornal')return jornalAdm(list);
    try{
      const rows=await api(`/rest/v1/envios?select=*&status=eq.${aba}${aba==='aprovado'?'&arquivado=eq.false':''}&order=criado_em.${aba==='pendente'?'asc':'desc'}`);
      const priv=rows.length?await api(`/rest/v1/envios_privado?select=envio_id,contato&envio_id=in.(${rows.map(r=>r.id).join(',')})`):[];
@@ -1051,6 +1090,46 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
        el.querySelectorAll('.oc-row [data-act]').forEach(b=>b.onclick=()=>acao(b.dataset.act,e,el));
      }
    }catch(err){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(err.message)}</p>`;}
+ }
+ /* aba JORNAL: publicar, editar e apagar edições do Pandherya News */
+ async function jornalAdm(list){
+   list.innerHTML='<p class="fmsg">Carregando...</p>';
+   let eds;try{eds=await api('/rest/v1/jornal?select=*&order=data.desc,criado_em.desc');}catch(e){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(e.message)}</p>`;return;}
+   const hoje=new Date(Date.now()-3*3600e3).toISOString().slice(0,10);
+   const form=(e={})=>`<div class="fgrid">
+     <div class="fld"><span><label>Manchete</label> <b>*</b></span><input type="text" data-j="manchete" maxlength="160" value="${esc(e.manchete||'')}"></div>
+     <div class="fld"><span><label>Data da edição</label> <b>*</b></span><input type="text" data-j="data" placeholder="AAAA-MM-DD" value="${esc(e.data||hoje)}" style="max-width:200px"><small>Formato: ano-mês-dia (ex.: ${hoje}).</small></div>
+     <div class="fld full"><span><label>Texto</label> <b>*</b></span><textarea rows="9" data-j="texto" maxlength="12000">${esc(e.texto||'')}</textarea><small>Separe os parágrafos com uma linha em branco. O primeiro parágrafo vira o subtítulo (em itálico). Nomes entre **asteriscos** ficam em dourado.</small></div>
+     <div class="fld"><span><label>Imagem da capa</label></span>${e.imagem?`<img class="prev" src="${jornalImg(e.imagem)}" alt="" data-pv>`:'<img class="prev" alt="" data-pv hidden>'}<input type="file" data-jf accept="image/jpeg,image/png,image/webp"><small>${e.imagem?'Escolha um arquivo só se quiser trocar.':'A arte do jornal (PNG ou JPG).'}</small></div></div>`;
+   list.innerHTML=`<div class="box"><h4>Nova edição</h4><div data-new>${form()}</div><div class="adm-act"><button class="gold-btn" data-pub>PUBLICAR EDIÇÃO</button></div><p class="fmsg" data-jmsg></p></div>
+     <div class="kicker" style="margin:22px 0 8px">Edições publicadas (${eds.length})</div><div class="oc-list">${eds.length?eds.map(e=>`<div class="oc-item" data-jid="${e.id}"><div class="oc-row">${e.imagem?`<img src="${jornalImg(e.imagem)}" alt="" style="width:60px;height:40px">`:'<span style="width:60px"></span>'}<div class="nm">${esc(e.manchete)}<small>${dataLonga(e.data)}${e.publicado_por?' · publicada por '+esc(e.publicado_por):''}</small></div><button class="tbtn" data-jedit>Editar</button><button class="tbtn" style="color:var(--blood)" data-jdel>Apagar</button></div><div class="oc-edit" hidden></div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join(''):'<p class="fmsg" style="margin:0">Nenhuma edição ainda.</p>'}</div>`;
+   const wirePv=root=>{const f=root.querySelector('[data-jf]');f.onchange=()=>{const x=f.files[0],pv=root.querySelector('[data-pv]');if(x&&pv){pv.src=URL.createObjectURL(x);pv.hidden=false;}};};
+   wirePv(list.querySelector('[data-new]'));
+   const ler=root=>{const v=k=>root.querySelector(`[data-j="${k}"]`).value.trim();return {manchete:v('manchete'),data:v('data'),texto:root.querySelector('[data-j="texto"]').value.replace(/\s+$/,'')};};
+   const validar=d=>!d.manchete?'Escreva a manchete.':!/^\d{4}-\d{2}-\d{2}$/.test(d.data)||isNaN(new Date(d.data))?'A data precisa estar no formato ano-mês-dia (ex.: 2026-11-12).':!d.texto.trim()?'Escreva o texto da edição.':'';
+   async function subirCapa(file){if(!/^image\/(png|jpeg|webp)$/.test(file.type))throw new Error('A imagem precisa ser PNG, JPG ou WEBP.');
+     const path=`jornal/${crypto.randomUUID()}.jpg`,blob=await prepFoto(file,'jornal');
+     const r=await fetch(`${CONFIG.dbUrl}/storage/v1/object/publico/${path}`,{method:'POST',headers:await H({'Content-Type':'image/jpeg','x-upsert':'true'}),body:blob});
+     if(!r.ok)throw new Error('Não consegui enviar a imagem.');return path;}
+   list.querySelector('[data-pub]').onclick=async ev=>{const root=list.querySelector('[data-new]'),m=list.querySelector('[data-jmsg]'),say=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
+     const d=ler(root),err=validar(d);if(err)return say(err,'err');
+     ev.target.disabled=true;say('Publicando...');
+     try{const f=root.querySelector('[data-jf]').files[0];if(f)d.imagem=await subirCapa(f);d.publicado_por=ses.email;
+       await api('/rest/v1/jornal',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(d)});
+       say('Edição publicada! Já está na Taverna.','ok');setTimeout(()=>jornalAdm(list),1000);}
+     catch(e){ev.target.disabled=false;say(e.message,'err');}};
+   list.querySelectorAll('[data-jid]').forEach(el=>{const e=eds.find(x=>x.id===el.dataset.jid),m=el.querySelector('[data-msg]'),say=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
+     el.querySelector('[data-jedit]').onclick=()=>{const ed=el.querySelector('.oc-edit');if(!ed.hidden){ed.hidden=true;ed.innerHTML='';return;}
+       ed.hidden=false;ed.innerHTML=form(e)+'<div class="adm-act"><button class="gold-btn" data-jsave>SALVAR ALTERAÇÕES</button></div>';wirePv(ed);
+       ed.querySelector('[data-jsave]').onclick=async ev=>{const d=ler(ed),err=validar(d);if(err)return say(err,'err');ev.target.disabled=true;say('Salvando...');
+         try{const f=ed.querySelector('[data-jf]').files[0];let velha=null;if(f){d.imagem=await subirCapa(f);if(e.imagem&&!e.imagem.startsWith('assets/'))velha=e.imagem;}
+           await api(`/rest/v1/jornal?id=eq.${e.id}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(d)});
+           if(velha)await apagarArquivos('publico',[velha]).catch(()=>{});
+           say('Salvo!','ok');setTimeout(()=>jornalAdm(list),900);}catch(x){ev.target.disabled=false;say(x.message,'err');}};};
+     const del=el.querySelector('[data-jdel]');del.onclick=async()=>{if(del.dataset.conf!=='1'){del.dataset.conf='1';del.textContent='Confirmar: apagar edição';return;}
+       del.disabled=true;try{await api(`/rest/v1/jornal?id=eq.${e.id}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+         if(e.imagem&&!e.imagem.startsWith('assets/'))await apagarArquivos('publico',[e.imagem]).catch(()=>{});
+         say('Apagada.','ok');setTimeout(()=>jornalAdm(list),700);}catch(x){del.disabled=false;say(x.message,'err');}};});
  }
  /* aba NO SITE: editar, remover do site ou restaurar qualquer personagem ou clã (oficial ou enviado) */
  const KIND={personagens:'personagem',ordens:'cla'};
@@ -1229,6 +1308,12 @@ function route(){
   views[r].scrollTop=0;closeModal();
 }
 {const a=document.getElementById('flk');if(CONFIG.flkUrl)a.href=CONFIG.flkUrl;}
+/* contador de acessos: conta uma vez por sessão do navegador e mostra o total no rodapé */
+(async()=>{let novo=true;try{novo=!sessionStorage.getItem('pdy-visita');sessionStorage.setItem('pdy-visita','1');}catch(e){}
+  try{const r=await fetch(`${CONFIG.dbUrl}/rest/v1/rpc/contar_acesso`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:JSON.stringify({novo})});
+    if(!r.ok)return;const n=await r.json(),el=document.getElementById('visitas');
+    el.innerHTML=`<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>${Number(n).toLocaleString('pt-BR')} ${n==1?'acesso':'acessos'}`;
+    el.hidden=false;document.getElementById('visitas-sep').hidden=false;}catch(e){}})();
 addEventListener('hashchange',route);
 route();
 })();
