@@ -305,6 +305,9 @@ footer .flk:not([href]){cursor:default}
 .mbox.guia img{display:block;width:100%;height:auto;border-radius:6px}
 .mbox.guia .mclose{position:absolute;top:16px;right:16px;float:none;background:rgba(5,7,13,.8)}
 .oc-list{display:grid;gap:8px}
+.oc-item .oc-edit{border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;padding:14px;margin-top:-4px;background:#0a0e1a}
+.oc-row .tbtn{flex:none}
+.mtext,.cbody,.post,.transcript,.clue,.quote,.oc-row .nm,.adm-item,.qitem span{overflow-wrap:anywhere;word-break:break-word}
 .oc-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 .oc-row img{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none}
 .oc-row .nm{flex:1;min-width:0}.oc-row .nm small{display:block;color:var(--muted);font-size:11px}
@@ -549,6 +552,8 @@ const PUB=p=>p?`${CONFIG.dbUrl}/storage/v1/object/public/publico/${p}`:null;
 const AUDIO_EXTRA={};
 const ORD=(a,b)=>String(a.n).localeCompare(String(b.n),'pt',{sensitivity:'base'});
 const PARAS=t=>String(t||'').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean).map(x=>esc(x).replace(/\n/g,'<br>'));
+/* cópia do texto oficial, antes das edições feitas pelos admins */
+const ORIGINAL={personagens:DATA.personagens.map(x=>({...x})),ordens:DATA.ordens.map(x=>({...x}))};
 async function carregarAprovados(){
   try{
     const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),4000);
@@ -563,6 +568,19 @@ async function carregarAprovados(){
       if(!it.cla&&d.cla_outro)it.f={'Clã':S(d.cla_outro)};
       if(e.audio)AUDIO_EXTRA[id]=PUB(e.audio);
       DATA.personagens.push(it);});
+  }catch(e){}
+  /* textos corrigidos pelos admins (aba NO SITE do #admin → Editar) */
+  try{
+    const r=await fetch(`${CONFIG.dbUrl}/rest/v1/edicoes?select=tipo,item_id,dados`,{headers:{apikey:CONFIG.dbKey}});
+    if(r.ok){const S=v=>esc(String(v??'').trim()),eds=await r.json(),clas=new Set(DATA.ordens.map(o=>o.id));
+      eds.filter(e=>e.tipo==='ordens').concat(eds.filter(e=>e.tipo==='personagens')).forEach(e=>{
+        const it=(DATA[e.tipo]||[]).find(i=>i.id===e.item_id),d=e.dados||{};if(!it||!d.n)return;
+        it.n=S(d.n);it.txt=PARAS(d.txt);
+        if(e.tipo==='ordens'){it.lema=S(d.lema);return;}
+        it.ep=S(d.ep);it.t=S(d.t);it.s=S(d.s);it.q=S(d.q);
+        const f=Object.assign({},it.f||{});delete f['Clã'];
+        if(d.cla&&clas.has(d.cla))it.cla=d.cla;else{it.cla='';if(d.cla_outro)f['Clã']=S(d.cla_outro);}
+        it.f=Object.keys(f).length?f:undefined;});}
   }catch(e){}
   /* personagens e clãs removidos pelos admins (aba NO SITE do #admin) */
   try{
@@ -979,14 +997,14 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
    root.querySelector('#al').addEventListener('submit',async ev=>{ev.preventDefault();const m=root.querySelector('#al-m');m.textContent='Entrando...';m.className='fmsg';
      try{await auth({email:root.querySelector('#al-e').value.trim(),password:root.querySelector('#al-s').value},'password');await listView();}
      catch(e){m.textContent=e.message;m.className='fmsg err';}});}
- let aba='pendente';
+ let aba='pendente';try{aba=sessionStorage.getItem('pdy-aba')||'pendente';}catch(e){}
  async function listView(){
    const ok=await api('/rest/v1/rpc/is_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>false);
    if(!ok){ses=null;save();return loginView('Esta conta não tem acesso de admin.');}
    root.innerHTML=`<div class="adm-bar">
      <div class="seg">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
      <span class="who">${esc(ses.email||'')} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
-   root.querySelectorAll('[data-aba]').forEach(b=>b.addEventListener('click',()=>{aba=b.dataset.aba;listView();}));
+   root.querySelectorAll('[data-aba]').forEach(b=>b.addEventListener('click',()=>{aba=b.dataset.aba;try{sessionStorage.setItem('pdy-aba',aba);}catch(e){}listView();}));
    root.querySelector('#adm-out').addEventListener('click',e=>{e.preventDefault();ses=null;save();loginView();});
    const list=root.querySelector('#adm-list');
    if(aba==='nosite')return noSite(list);
@@ -1013,34 +1031,72 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
      }
    }catch(err){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(err.message)}</p>`;}
  }
- /* aba NO SITE: remove do site (ou restaura) qualquer personagem ou clã, oficial ou enviado */
+ /* aba NO SITE: editar, remover do site ou restaurar qualquer personagem ou clã (oficial ou enviado) */
+ const KIND={personagens:'personagem',ordens:'cla'};
+ /* texto atual de um item oficial, antes das edições (para preencher o editor) */
+ function dadosOriginais(cat,id){const it=(ORIGINAL[cat]||[]).find(i=>i.id===id);if(!it)return {};
+   const d={n:it.n,txt:(it.txt||[]).join('\n\n')};
+   if(cat==='personagens')Object.assign(d,{ep:it.ep||'',t:it.t||'',s:it.s||'',cla:it.cla||'',q:it.q||''});else d.lema=it.lema||'';
+   return d;}
  async function noSite(list){
    list.innerHTML='<p class="fmsg">Carregando...</p>';
    try{
-     const oc=await api('/rest/v1/ocultos?select=*&order=ocultado_em.desc');
-     const hid=new Set(oc.map(o=>o.tipo+':'+o.item_id));
+     const [oc,ed]=await Promise.all([api('/rest/v1/ocultos?select=*&order=ocultado_em.desc'),api('/rest/v1/edicoes?select=tipo,item_id,dados,editado_por,editado_em')]);
+     const EDIT=Object.fromEntries(ed.map(e=>[e.tipo+':'+e.item_id,e]));
      const vivos=['personagens','ordens'].flatMap(cat=>DATA[cat].map(it=>({cat,it})));
-     const row=(cat,id,nome,img,sub,btn)=>`<div class="oc-row">${img?`<img src="${img}" alt="">`:'<span style="width:40px"></span>'}<div class="nm">${nome}<small>${sub}</small></div>${btn}</div>`;
-     list.innerHTML=`<p class="fmsg" style="margin-top:0">Remover tira o personagem ou clã do site na hora, sem apagar nada: ele vai para a lista de removidos e pode ser restaurado. Histórias enviadas pela comunidade também podem ser tiradas pela aba Aprovados.</p>
+     const row=(nome,img,sub,btns,key)=>`<div class="oc-item"${key?` data-item="${esc(key)}"`:''}><div class="oc-row">${img?`<img src="${img}" alt="">`:'<span style="width:40px"></span>'}<div class="nm">${nome}<small>${sub}</small></div>${btns}</div><div class="oc-edit" hidden></div></div>`;
+     list.innerHTML=`<p class="fmsg" style="margin-top:0"><b style="color:var(--gold)">Editar</b> corrige o texto de qualquer personagem ou clã (inclusive os oficiais). <b style="color:var(--gold)">Remover</b> tira do site na hora, sem apagar nada: vai para a lista de removidos e pode ser restaurado.</p>
       <label class="search" style="display:block;margin:12px 0">${svg('search')}<input id="oc-q" placeholder="Buscar no site..." aria-label="Buscar"></label>
       <div class="kicker" style="margin:14px 0 8px">No site agora</div><div class="oc-list" id="oc-vivos"></div>
-      <div class="kicker" style="margin:22px 0 8px">Removidos (${oc.length})</div><div class="oc-list">${oc.length?oc.map(o=>row(o.tipo,o.item_id,esc(o.nome||o.item_id),'',`${o.tipo==='ordens'?'Clã':'Personagem'} · removido por ${esc(o.ocultado_por||'admin')}`,`<button class="tbtn" data-rest="${o.tipo}:${esc(o.item_id)}">Restaurar</button>`)).join(''):'<p class="fmsg" style="margin:0">Nenhum.</p>'}</div>
+      <div class="kicker" style="margin:22px 0 8px">Removidos (${oc.length})</div><div class="oc-list">${oc.length?oc.map(o=>row(esc(o.nome||o.item_id),'',`${o.tipo==='ordens'?'Clã':'Personagem'} · removido por ${esc(o.ocultado_por||'admin')}`,`<button class="tbtn" data-rest="${o.tipo}:${esc(o.item_id)}">Restaurar</button>`)).join(''):'<p class="fmsg" style="margin:0">Nenhum.</p>'}</div>
       <p class="fmsg" data-ocmsg></p>`;
      const draw=()=>{const t=list.querySelector('#oc-q').value.trim().toLowerCase();
-       list.querySelector('#oc-vivos').innerHTML=vivos.filter(({it})=>!t||String(it.n).toLowerCase().includes(t)).map(({cat,it})=>row(cat,it.id,it.n,it.img,`${cat==='ordens'?'Clã':'Personagem'}${it.id.startsWith('u-')?' · enviado pela comunidade':''}`,`<button class="tbtn" style="color:var(--blood)" data-rem="${cat}:${it.id}">Remover do site</button>`)).join('')||'<p class="fmsg" style="margin:0">Nada encontrado.</p>';};
+       list.querySelector('#oc-vivos').innerHTML=vivos.filter(({it})=>!t||String(it.n).toLowerCase().includes(t)).map(({cat,it})=>{const key=cat+':'+it.id,com=it.id.startsWith('u-');
+         return row(it.n,it.img,`${cat==='ordens'?'Clã':'Personagem'}${com?' · enviado pela comunidade':''}${EDIT[key]?' · editado por '+esc(EDIT[key].editado_por||'admin'):''}`,
+           `<button class="tbtn" data-edit="${key}">Editar</button><button class="tbtn" style="color:var(--blood)" data-rem="${key}">Remover do site</button>`,key);}).join('')||'<p class="fmsg" style="margin:0">Nada encontrado.</p>';};
      list.querySelector('#oc-q').addEventListener('input',draw);draw();
      const say=(t,c='')=>{const m=list.querySelector('[data-ocmsg]');m.textContent=t;m.className='fmsg '+c;};
+     const plain=t=>String(t).replace(/<[^>]*>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&amp;/g,'&');
+     async function abrirEditor(btn,cat,id){
+       const box=btn.closest('.oc-item').querySelector('.oc-edit');if(!box.hidden){box.hidden=true;box.innerHTML='';return;}
+       box.hidden=false;box.innerHTML='<p class="fmsg">Carregando...</p>';
+       const com=id.startsWith('u-'),key=cat+':'+id;let d;
+       try{
+         if(com){const rows=await api(`/rest/v1/envios?select=dados&id=eq.${id.slice(2)}`);d=(rows[0]&&rows[0].dados)||{};}
+         else d=EDIT[key]?EDIT[key].dados:dadosOriginais(cat,id);
+       }catch(e){box.innerHTML=`<p class="fmsg err">${esc(e.message)}</p>`;return;}
+       const pre='e'+Math.random().toString(36).slice(2,8)+'-';
+       box.innerHTML=`<div class="fgrid">${fieldsHTML(KIND[cat],d,pre,true)}</div>
+        <div class="adm-act"><button class="gold-btn" data-save>SALVAR</button><button class="tbtn" data-cancel>Cancelar</button>${!com&&EDIT[key]?'<button class="tbtn" data-orig style="color:var(--blood)">Voltar ao texto original</button>':''}</div><p class="fmsg" data-emsg></p>`;
+       wireCla(box);wireCount(box);
+       const m=box.querySelector('[data-emsg]'),msg=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
+       box.querySelector('[data-cancel]').onclick=()=>{box.hidden=true;box.innerHTML='';};
+       const orig=box.querySelector('[data-orig]');
+       if(orig)orig.onclick=async()=>{if(orig.dataset.conf!=='1'){orig.dataset.conf='1';orig.textContent='Confirmar: voltar ao original';return;}
+         try{orig.disabled=true;await api(`/rest/v1/edicoes?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+           msg('Texto original restaurado. Atualizando...','ok');setTimeout(()=>location.reload(),900);}catch(e){orig.disabled=false;msg(e.message,'err');}};
+       box.querySelector('[data-save]').onclick=async ev=>{const nd=readFields(box.querySelector('.fgrid'));
+         if(!nd.n)return msg('O nome não pode ficar vazio.','err');
+         ev.target.disabled=true;msg('Salvando...');
+         try{
+           if(com)await api(`/rest/v1/envios?id=eq.${id.slice(2)}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({dados:nd,revisado_em:new Date().toISOString(),revisado_por:ses.email})});
+           else await api('/rest/v1/edicoes?on_conflict=tipo,item_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({tipo:cat,item_id:id,dados:nd,editado_em:new Date().toISOString(),editado_por:ses.email})});
+           msg('Salvo! Já está no site. Atualizando...','ok');setTimeout(()=>location.reload(),900);
+         }catch(e){ev.target.disabled=false;msg(e.message,'err');}};
+     }
      list.onclick=async ev=>{
+       const ed=ev.target.closest('[data-edit]');
+       if(ed){const [cat,id]=ed.dataset.edit.split(/:(.*)/s);return abrirEditor(ed,cat,id);}
        const r=ev.target.closest('[data-rem]'),x=ev.target.closest('[data-rest]');if(!r&&!x)return;
        const [cat,id]=(r||x).dataset[r?'rem':'rest'].split(/:(.*)/s);
        try{
          if(r){const it=DATA[cat].find(i=>i.id===id);
            if(r.dataset.conf!=='1'){r.dataset.conf='1';r.textContent='Confirmar remoção';return;}
            r.disabled=true;
-           await api('/rest/v1/ocultos',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({tipo:cat,item_id:id,nome:String(it?it.n:id).replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'),ocultado_por:ses.email})});
+           await api('/rest/v1/ocultos',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({tipo:cat,item_id:id,nome:plain(it?it.n:id),ocultado_por:ses.email})});
            DATA[cat]=DATA[cat].filter(i=>i.id!==id);
          }else{x.disabled=true;await api(`/rest/v1/ocultos?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
-           say('Restaurado. Recarregue a página para ver de volta no site.','ok');setTimeout(()=>location.reload(),1200);return;}
+           say('Restaurado. Atualizando...','ok');setTimeout(()=>location.reload(),900);return;}
          say('Removido do site.','ok');noSite(list);
        }catch(e){say(e.message,'err');}
      };
