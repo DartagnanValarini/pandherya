@@ -400,7 +400,7 @@ const CONFIG={
 const DB={
   async get(tab,q){const r=await fetch(`${CONFIG.dbUrl}/rest/v1/${tab}?${q}`,{headers:{apikey:CONFIG.dbKey}});if(!r.ok)throw new Error(await r.text());return r.json();},
   async add(tab,row){const r=await fetch(`${CONFIG.dbUrl}/rest/v1/${tab}`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(row)});
-    if(!r.ok){let m='Não foi possível salvar agora. Tente de novo.';try{const j=await r.json();if(/Muitos envios/.test(j.message))m=j.message;}catch(_){}throw new Error(m);}}
+    if(!r.ok){let m='Não foi possível salvar agora. Tente de novo.';try{const j=await r.json();if(/Muitos envios|Já existe/.test(j.message))m=j.message;}catch(_){}throw new Error(m);}}
 };
 
 /* =========================================================
@@ -929,6 +929,11 @@ function wireCount(root){root.querySelectorAll('[data-cnt]').forEach(c=>{const t
 document.addEventListener('click',e=>{const b=e.target.closest('[data-info]');
   document.querySelectorAll('.ipop:not([hidden])').forEach(p=>{if(!b||p!==b.nextElementSibling)p.hidden=true;});
   if(b){e.preventDefault();const p=b.nextElementSibling;p.hidden=!p.hidden;}});
+/* nomes repetidos: o banco compara o nome antes da vírgula, sem acento/maiúscula/pontuação, dentro do mesmo tipo */
+async function nomeEmUso(tipo,nome,ignorar=null){if(!nome||!nome.trim())return null;
+  const r=await fetch(`${CONFIG.dbUrl}/rest/v1/rpc/nome_em_uso`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:JSON.stringify({p_tipo:tipo,p_nome:nome,p_ignorar:ignorar})});
+  if(!r.ok)return null;return await r.json();}
+const avisoNome=(tipo,r)=>`Já existe ${tipo==='cla'||tipo==='ordens'?'um clã':'um personagem'} com esse nome: ${r}. Escolha outro nome.`;
 const AUDIO_EXT={'audio/mpeg':'mp3','audio/mp3':'mp3','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/aac':'aac','audio/ogg':'ogg','audio/webm':'webm','audio/wav':'wav','audio/x-wav':'wav'};
 const EXT_AUDIO={mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',webm:'audio/webm',wav:'audio/wav'};
 const lerImagem=file=>new Promise((ok,fail)=>{const u=URL.createObjectURL(file),im=new Image();
@@ -986,7 +991,13 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
  const FOTO_INFO={
   personagem:`Corpo inteiro (preferencial) ou retrato, em alta qualidade.<br>• Resolução: <b>${REGRAS.fotoW} × ${REGRAS.fotoH} px</b> (ou maior, na mesma proporção)<br>• Proporção: <b>2:3 vertical</b><br>• Formato: <b>PNG ou JPG</b><br>• Estilo: nórdico/medieval realista, com o personagem em destaque.<br><br>Não são aceitas: imagens cartoon, anime ou desenho; baixa resolução; marcas d'água, textos, logotipos ou interfaces; imagens fora da ambientação de Pandherya.`,
   cla:'O brasão ou símbolo do clã, em alta qualidade.<br>• Formato: <b>PNG ou JPG</b><br>• De preferência <b>quadrado</b>, <b>1024 × 1024 px</b><br>• Estilo dentro da estética de Pandherya<br><br>Não são aceitas: imagens cartoon, anime ou desenho; baixa resolução ou qualidade comprometida; imagens fora da estética de Pandherya.'};
- function render(){$('sf-fields').innerHTML=fieldsHTML(tipo,{},'sf-');wireCla($('sf-fields'));wireCount($('sf-fields'));
+ let nomeErr='',nomeT=null;
+ async function checkNome(){const inp=$('sf-fields').querySelector('[data-k="n"]');if(!inp)return;let e=inp.parentElement.querySelector('[data-nerr]');
+   if(!e){e=document.createElement('small');e.dataset.nerr='';e.className='cnt bad';e.hidden=true;inp.insertAdjacentElement('afterend',e);}
+   const v=inp.value.trim(),t=tipo;const r=v?await nomeEmUso(t,v).catch(()=>null):null;if(inp.value.trim()!==v||t!==tipo)return;
+   nomeErr=r?avisoNome(t,r):'';e.textContent=nomeErr;e.hidden=!nomeErr;}
+ function render(){$('sf-fields').innerHTML=fieldsHTML(tipo,{},'sf-');wireCla($('sf-fields'));wireCount($('sf-fields'));nomeErr='';
+   $('sf-fields').querySelector('[data-k="n"]').addEventListener('input',()=>{clearTimeout(nomeT);nomeT=setTimeout(checkNome,450);});
    $('sf-audio-w').hidden=tipo!=='personagem';
    $('sf-foto-l').textContent=tipo==='cla'?'Brasão do clã':'Imagem do personagem';
    $('sf-foto-info').innerHTML=FOTO_INFO[tipo];
@@ -1006,6 +1017,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
    const foto=$('sf-foto').files[0],audio=tipo==='personagem'?$('sf-audio').files[0]:null;
    if(!foto)falta.push(tipo==='cla'?'Brasão do clã':'Imagem do personagem');
    if(falta.length)return msg('Preencha: '+falta.join(', ')+'.','err');
+   await checkNome();if(nomeErr)return msg(nomeErr,'err');
    if(tipo==='personagem'){const n=(d.txt||'').length;
      if(n<REGRAS.loreMin)return msg(`A história precisa ter pelo menos ${REGRAS.loreMin} caracteres (está com ${n}).`,'err');
      if(n>REGRAS.loreMax)return msg(`A história pode ter no máximo ${REGRAS.loreMax.toLocaleString('pt-BR')} caracteres (está com ${n.toLocaleString('pt-BR')}).`,'err');}
@@ -1041,7 +1053,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
    if(Date.now()/1000>ses.expires_at-60){try{await auth({refresh_token:ses.refresh_token},'refresh_token');}catch(e){ses=null;save();loginView();throw e;}}
    return Object.assign({apikey:CONFIG.dbKey,Authorization:'Bearer '+ses.access_token},extra);}
  async function api(path,opt={}){const r=await fetch(`${CONFIG.dbUrl}${path}`,Object.assign({},opt,{headers:await H(opt.headers||{})}));
-   if(!r.ok)throw new Error((await r.text().catch(()=>''))||('Erro '+r.status));const t=await r.text();return t?JSON.parse(t):null;}
+   if(!r.ok){const t=await r.text().catch(()=>'');let m=t;try{const j=JSON.parse(t);m=j.message||j.error||t;}catch(_){}throw new Error(m||('Erro '+r.status));}const t=await r.text();return t?JSON.parse(t):null;}
  async function blobUrl(bucket,path){const r=await fetch(`${CONFIG.dbUrl}/storage/v1/object/${bucket}/${path}`,{headers:await H()});if(!r.ok)return null;return URL.createObjectURL(await r.blob());}
  function loginView(m=''){root.innerHTML=`<div class="box" style="max-width:420px;margin:0 auto"><h4>Entrar</h4>
    <form id="al" class="fgrid" style="grid-template-columns:1fr">
@@ -1066,6 +1078,8 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
  const floki=()=>{let i;do{i=Math.floor(Math.random()*FLOKI.length);}while(i===flokiUlt&&FLOKI.length>1);flokiUlt=i;return FLOKI[i];};
  let aba='pendente';try{aba=sessionStorage.getItem('pdy-aba')||'pendente';}catch(e){}
  async function listView(){
+   if(!window.__nomesSync){window.__nomesSync=1;const rows=['personagens','ordens'].flatMap(c=>ORIGINAL[c].map(i=>({tipo:c,item_id:i.id,nome:String(i.n),atualizado_em:new Date().toISOString()})));
+     api('/rest/v1/nomes_oficiais?on_conflict=tipo,item_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)}).catch(()=>{window.__nomesSync=0;});}
    const ok=await api('/rest/v1/rpc/is_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>false);
    if(!ok){ses=null;save();return loginView('Esta conta não tem acesso de admin.');}
    root.innerHTML=`<div class="adm-bar">
@@ -1237,6 +1251,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
            msg('Texto original restaurado. Atualizando...','ok');setTimeout(()=>location.reload(),900);}catch(e){orig.disabled=false;msg(e.message,'err');}};
        box.querySelector('[data-save]').onclick=async ev=>{const nd=readFields(box.querySelector('.fgrid'));
          if(!nd.n)return msg('O nome não pode ficar vazio.','err');
+         {const r=await nomeEmUso(cat,nd.n,com?id:id).catch(()=>null);if(r)return msg(avisoNome(cat,r),'err');}
          const nf=box.querySelector('[data-nf]').files[0],na=box.querySelector('[data-na]')?.files[0],rma=box.querySelector('[data-rma]')?.checked&&!na;
          if(nf&&!/^image\/(png|jpeg|webp)$/.test(nf.type))return msg('A imagem precisa ser PNG, JPG ou WEBP.','err');
          let aExt=null,aType=null;
@@ -1301,6 +1316,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
    const m=el.querySelector('[data-msg]'),say=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
    const g=el.querySelector('.oc-edit .fgrid'),d=g?readFields(g):Object.assign({},e.dados||{});
    if(!['recusar','apagar','tirar','arquivar'].includes(act)){const falta=FORM[e.tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);if(falta.length)return say('Preencha: '+falta.join(', ')+'.','err');}
+   if(act==='aprovar'||act==='salvar'){const r=await nomeEmUso(e.tipo,d.n,'u-'+e.id).catch(()=>null);if(r)return say(avisoNome(e.tipo,r),'err');}
    if(act==='apagar'&&!confirmar(el,'Apagar este envio de vez? Não dá para desfazer.'))return;
    if(act==='tirar'&&!confirmar(el,'Tirar esta história do site? Ela vai para Recusados e os arquivos públicos são apagados.'))return;
    el.querySelectorAll('button').forEach(b=>b.disabled=true);say('Salvando...');
