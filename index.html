@@ -303,7 +303,7 @@ footer .flk:not([href]){cursor:default}
 .ibtn:hover,.ibtn:focus-visible{background:var(--gold-bg)}
 .ipop{position:absolute;z-index:30;top:22px;left:0;right:0;max-width:440px;background:#0b0f1c;border:1px solid var(--gold-dim);border-radius:8px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.6);font-size:12.5px;line-height:1.55;letter-spacing:0;text-transform:none;color:var(--text);font-family:var(--ui)}
 .ipop i{color:var(--muted)}.ipop b{color:var(--gold)}
-.cnt{font-size:11px}.cnt.good{color:#7fb77e}.cnt.bad{color:var(--blood)}
+.cnt{font-size:11px}.cnt.warn{color:#d8b86a}.cnt.good{color:#7fb77e}.cnt.bad{color:var(--blood)}
 .guia-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 18px;padding:12px 14px;border:1px dashed var(--gold-dim);border-radius:8px;color:var(--muted);font-size:13px}
 .mbox.guia{display:block;width:min(1180px,100%);padding:10px;position:relative}
 .mbox.guia img{display:block;width:100%;height:auto;border-radius:6px}
@@ -900,9 +900,9 @@ const FORM={
   ['q','Sua frase',0,'text',200,'Opcional, fora da contagem da história','Opcional e fora da contagem de caracteres. Uma citação que represente o personagem.<br><i>Ex.: “Nem toda ausência é morte. Nem todo silêncio é vazio.”</i>']
  ],
  cla:[
-  ['n','Nome do clã',1,'text',50,'','O nome do clã ou guilda.<br><i>Ex.: Clã do Corvo, Lox Bêbado.</i>'],
-  ['lema','Lema',0,'text',200,'A frase que representa o clã','Opcional. A frase ou juramento do clã.<br><i>Ex.: “Enquanto houver um Corvo de pé, nosso estandarte jamais tocará o chão.”</i>'],
-  ['txt','História do clã',1,'area',8000,'Separe os parágrafos com uma linha em branco','A história do clã: como surgiu, quem o fundou, no que acredita e onde está hoje em Pandherya.']
+  ['n','Nome do clã',1,'text',50,'Ex.: Clã de Pandherya','O nome do clã ou guilda, como ele é conhecido em Pandherya.<br><i>Ex.: Clã de Pandherya, Clã do Corvo.</i>'],
+  ['lema','Lema',0,'text',200,'Opcional. A frase que representa o clã','Opcional. A frase ou juramento que resume o clã.<br><i>Ex.: “União, Honra e Memória.”</i>'],
+  ['txt','História do clã',1,'area',8000,'Separe os parágrafos com uma linha em branco','Conte a história do clã de forma clara, objetiva e com a identidade dele. Você pode incluir:<br>• <b>Origem:</b> como e por quem o clã surgiu.<br>• <b>Objetivos:</b> no que o clã acredita e o que busca.<br>• <b>Feitos:</b> conquistas e momentos marcantes.<br>• <b>Território, alianças e curiosidades.</b><br><br><i>Ex.: “O Clã de Pandherya nasceu da união de viajantes, construtores e guerreiros que chegaram a estas terras em busca de um novo lar...”</i>']
  ]
 };
 const infoBtn=t=>t?`<button type="button" class="ibtn" aria-label="Como preencher este campo" data-info>i</button><span class="ipop" hidden>${t}</span>`:'';
@@ -933,12 +933,17 @@ const AUDIO_EXT={'audio/mpeg':'mp3','audio/mp3':'mp3','audio/mp4':'m4a','audio/x
 const EXT_AUDIO={mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',webm:'audio/webm',wav:'audio/wav'};
 const lerImagem=file=>new Promise((ok,fail)=>{const u=URL.createObjectURL(file),im=new Image();
   im.onload=()=>ok({im,u});im.onerror=()=>{URL.revokeObjectURL(u);fail(new Error('Esse arquivo de imagem não abriu. Use PNG ou JPG.'));};im.src=u;});
-/* checa a imagem do personagem: PNG/JPG, vertical 2:3, pelo menos 1024 × 1536 */
+/* checa a imagem: personagem PNG/JPG, vertical 2:3, pelo menos 1024 × 1536; brasão PNG/JPG, pelo menos 512 px */
+/* aviso (não bloqueia): brasão de preferência quadrado, 1024 × 1024 */
+async function avisoFoto(file,tipo){if(tipo!=='cla'||!/^image\/(png|jpeg)$/.test(file.type))return '';
+  const {im,u}=await lerImagem(file);URL.revokeObjectURL(u);const q=Math.abs(im.width/im.height-1)<=0.03;
+  return !q?`Dica: o brasão fica melhor quadrado (o seu tem ${im.width} × ${im.height} px). Pode enviar assim mesmo.`:im.width<1024?`Dica: o ideal é 1024 × 1024 px (o seu tem ${im.width} × ${im.height}). Pode enviar assim mesmo.`:'';}
 async function checarFoto(file,tipo){
   if(!/^image\/(png|jpeg)$/.test(file.type))return 'A imagem precisa ser PNG ou JPG.';
   if(file.size>25*1024*1024)return 'A imagem é muito grande (máximo 25 MB).';
-  if(tipo!=='personagem')return '';
   const {im,u}=await lerImagem(file);URL.revokeObjectURL(u);
+  if(tipo==='cla'){if(Math.min(im.width,im.height)<512)return `O brasão está com resolução baixa (${im.width} × ${im.height} px). Envie pelo menos 512 × 512, de preferência 1024 × 1024.`;return '';}
+  if(tipo!=='personagem')return '';
   const r=im.width/im.height;
   if(Math.abs(r-2/3)>0.02)return `A imagem precisa ser vertical na proporção 2:3 (a sua tem ${im.width} × ${im.height} px).`;
   if(im.width<REGRAS.fotoW||im.height<REGRAS.fotoH)return `A imagem precisa ter pelo menos ${REGRAS.fotoW} × ${REGRAS.fotoH} px (a sua tem ${im.width} × ${im.height} px).`;
@@ -946,14 +951,16 @@ async function checarFoto(file,tipo){
 }
 /* foto: personagem fica em 1024 × 1536; brasão até 1200 px; tudo salvo em JPG */
 async function prepFoto(file,tipo){const {im,u}=await lerImagem(file);
-  const max=tipo==='personagem'?REGRAS.fotoH:tipo==='jornal'?1600:1200,k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');
+  const max=tipo==='personagem'?REGRAS.fotoH:tipo==='jornal'?1600:1024,k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');
   c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
   const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
   return new Promise((ok,fail)=>c.toBlob(b=>b?ok(b):fail(new Error('Não consegui ler a imagem.')),'image/jpeg',.9));}
 async function subir(bucket,path,blob,type,headers={}){
   const r=await fetch(`${CONFIG.dbUrl}/storage/v1/object/${bucket}/${path}`,{method:'POST',headers:Object.assign({apikey:CONFIG.dbKey,'Content-Type':type},headers),body:blob});
   if(!r.ok)throw new Error('Não foi possível enviar o arquivo agora. Tente de novo.');}
-function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclose" id="mclose">Fechar</button><img src="assets/guia-personagem.jpg" alt="Envie seu personagem: imagem 1024 × 1536 px, proporção 2:3 vertical, PNG ou JPG, estilo nórdico/medieval realista. História entre 800 e 1.300 caracteres. Informações obrigatórias: nome, raça, classe, história e imagem. Todo envio é analisado pela administração."></div>`;modal.hidden=false;}
+const GUIA_CLA='Modelo para envio de clã: nome do clã, lema (opcional), história do clã e brasão em PNG ou JPG, de preferência quadrado (1024 × 1024 px), em alta qualidade. Não são aceitas imagens cartoon, anime ou desenho, de baixa resolução ou fora da estética de Pandherya. Todo envio passa por aprovação da administração.';
+function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia"><button class="mclose" id="mclose">Fechar</button><img src="assets/guia-cla.jpg" alt="${GUIA_CLA}"></div>`;modal.hidden=false;return;}
+  modal.innerHTML=`<div class="mbox guia"><button class="mclose" id="mclose">Fechar</button><img src="assets/guia-personagem.jpg" alt="Envie seu personagem: imagem 1024 × 1536 px, proporção 2:3 vertical, PNG ou JPG, estilo nórdico/medieval realista. História entre 800 e 1.300 caracteres. Informações obrigatórias: nome, raça, classe, história e imagem. Todo envio é analisado pela administração."></div>`;modal.hidden=false;}
 {
  const s=page('enviar','quill','Inclua sua História','Conte a história do seu personagem ou do seu clã. Os admins revisam e, se aprovada, ela entra no compêndio.',`
   <div class="sub-wrap"><div class="box">
@@ -978,16 +985,17 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
  const msg=(t,c='')=>{const m=$('sf-msg');m.textContent=t;m.className='fmsg '+c;};
  const FOTO_INFO={
   personagem:`Corpo inteiro (preferencial) ou retrato, em alta qualidade.<br>• Resolução: <b>${REGRAS.fotoW} × ${REGRAS.fotoH} px</b> (ou maior, na mesma proporção)<br>• Proporção: <b>2:3 vertical</b><br>• Formato: <b>PNG ou JPG</b><br>• Estilo: nórdico/medieval realista, com o personagem em destaque.<br><br>Não são aceitas: imagens cartoon, anime ou desenho; baixa resolução; marcas d'água, textos, logotipos ou interfaces; imagens fora da ambientação de Pandherya.`,
-  cla:'O brasão ou símbolo do clã, de preferência quadrado e com fundo escuro ou transparente.<br><i>Formato: PNG ou JPG.</i>'};
+  cla:'O brasão ou símbolo do clã, em alta qualidade.<br>• Formato: <b>PNG ou JPG</b><br>• De preferência <b>quadrado</b>, <b>1024 × 1024 px</b><br>• Estilo dentro da estética de Pandherya<br><br>Não são aceitas: imagens cartoon, anime ou desenho; baixa resolução ou qualidade comprometida; imagens fora da estética de Pandherya.'};
  function render(){$('sf-fields').innerHTML=fieldsHTML(tipo,{},'sf-');wireCla($('sf-fields'));wireCount($('sf-fields'));
-   $('sf-audio-w').hidden=tipo!=='personagem';$('sf-guia').hidden=tipo!=='personagem';
-   $('sf-foto-l').textContent=tipo==='cla'?'Brasão do clã':'Imagem do personagem';$('sf-foto-req').hidden=tipo!=='personagem';
+   $('sf-audio-w').hidden=tipo!=='personagem';
+   $('sf-foto-l').textContent=tipo==='cla'?'Brasão do clã':'Imagem do personagem';
    $('sf-foto-info').innerHTML=FOTO_INFO[tipo];
-   $('sf-foto-hint').textContent=tipo==='personagem'?`${REGRAS.fotoW} × ${REGRAS.fotoH} px, vertical 2:3, PNG ou JPG.`:'PNG ou JPG.';
+   $('sf-foto-hint').textContent=tipo==='personagem'?`${REGRAS.fotoW} × ${REGRAS.fotoH} px, vertical 2:3, PNG ou JPG.`:'PNG ou JPG, de preferência quadrado (1024 × 1024 px).';
    s.querySelectorAll('[data-tipo]').forEach(b=>b.classList.toggle('on',b.dataset.tipo===tipo));checkFoto();}
- async function checkFoto(){const f=$('sf-foto').files[0],e=$('sf-foto-err');fotoErr=f?await checarFoto(f,tipo).catch(x=>x.message):'';e.textContent=fotoErr;e.hidden=!fotoErr;}
+ async function checkFoto(){const f=$('sf-foto').files[0],e=$('sf-foto-err');fotoErr=f?await checarFoto(f,tipo).catch(x=>x.message):'';
+   const av=f&&!fotoErr?await avisoFoto(f,tipo).catch(()=>''):'';e.textContent=fotoErr||av;e.className='cnt '+(fotoErr?'bad':'warn');e.hidden=!(fotoErr||av);}
  s.querySelectorAll('[data-tipo]').forEach(b=>b.addEventListener('click',()=>{tipo=b.dataset.tipo;render();msg('');}));
- $('sf-guia-btn').addEventListener('click',abrirGuia);
+ $('sf-guia-btn').addEventListener('click',()=>abrirGuia(tipo));
  $('sf-foto').addEventListener('change',()=>{const f=$('sf-foto').files[0],p=$('sf-prev');if(p.src)URL.revokeObjectURL(p.src);
    if(f){p.src=URL.createObjectURL(f);p.hidden=false;}else{p.removeAttribute('src');p.hidden=true;}checkFoto();});
  render();
@@ -996,7 +1004,7 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
    const d=readFields($('sf-fields'));
    const falta=FORM[tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);
    const foto=$('sf-foto').files[0],audio=tipo==='personagem'?$('sf-audio').files[0]:null;
-   if(tipo==='personagem'&&!foto)falta.push('Imagem do personagem');
+   if(!foto)falta.push(tipo==='cla'?'Brasão do clã':'Imagem do personagem');
    if(falta.length)return msg('Preencha: '+falta.join(', ')+'.','err');
    if(tipo==='personagem'){const n=(d.txt||'').length;
      if(n<REGRAS.loreMin)return msg(`A história precisa ter pelo menos ${REGRAS.loreMin} caracteres (está com ${n}).`,'err');
