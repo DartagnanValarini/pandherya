@@ -576,8 +576,9 @@ async function carregarAprovados(){
     if(r.ok){const S=v=>esc(String(v??'').trim()),eds=await r.json(),clas=new Set(DATA.ordens.map(o=>o.id));
       eds.filter(e=>e.tipo==='ordens').concat(eds.filter(e=>e.tipo==='personagens')).forEach(e=>{
         const it=(DATA[e.tipo]||[]).find(i=>i.id===e.item_id),d=e.dados||{};if(!it||!d.n)return;
-        it.n=S(d.n);it.txt=PARAS(d.txt);
+        it.n=S(d.n);it.txt=PARAS(d.txt);if(d._foto)it.img=PUB(d._foto);
         if(e.tipo==='ordens'){it.lema=S(d.lema);return;}
+        if(d._audio)AUDIO_EXTRA[it.id]=PUB(d._audio);else if(d._semAudio)AUDIO_EXTRA[it.id]=false;
         it.ep=S(d.ep);it.t=S(d.t);it.s=S(d.s);it.q=S(d.q);
         const f=Object.assign({},it.f||{});delete f['Clã'];
         if(d.cla&&clas.has(d.cla))it.cla=d.cla;else{it.cla='';if(d.cla_outro)f['Clã']=S(d.cla_outro);}
@@ -814,7 +815,7 @@ page('live','live','Live','Saga Pandherya ao vivo',`
 /* Narrações: as que vierem do Drive (arquivo .mp3 na pasta do personagem) têm prioridade.
    As geradas por API (ElevenLabs v3, voz Eliel) só entram com aprovação do Dart. */
 const AUDIO=new Set(['sigurdr','olaf','ubbe','floki','cultista','forseti','yume','aryya','aqua','etyr','arqueiro']);
-const audioOf=id=>AUDIO_EXTRA[id]||(AUDIO.has(id)?`assets/audio/${id}.mp3`:null);
+const audioOf=id=>id in AUDIO_EXTRA?(AUDIO_EXTRA[id]||null):(AUDIO.has(id)?`assets/audio/${id}.mp3`:null);
 {
  const STORIES=DATA.personagens.filter(p=>p.txt).map(p=>({id:p.id,n:p.ep?`${p.n} — ${p.ep}`:p.n,img:p.img,txt:p.txt,src:audioOf(p.id)}));
  const s=page('narrador','music','O Narrador','Ouça as histórias e registros de Pandherya',`
@@ -1061,27 +1062,51 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
      async function abrirEditor(btn,cat,id){
        const box=btn.closest('.oc-item').querySelector('.oc-edit');if(!box.hidden){box.hidden=true;box.innerHTML='';return;}
        box.hidden=false;box.innerHTML='<p class="fmsg">Carregando...</p>';
-       const com=id.startsWith('u-'),key=cat+':'+id;let d;
+       const com=id.startsWith('u-'),key=cat+':'+id,item=DATA[cat].find(i=>i.id===id)||{};let d,row={};
        try{
-         if(com){const rows=await api(`/rest/v1/envios?select=dados&id=eq.${id.slice(2)}`);d=(rows[0]&&rows[0].dados)||{};}
+         if(com){const rows=await api(`/rest/v1/envios?select=dados,foto,audio&id=eq.${id.slice(2)}`);row=rows[0]||{};d=row.dados||{};}
          else d=EDIT[key]?EDIT[key].dados:dadosOriginais(cat,id);
        }catch(e){box.innerHTML=`<p class="fmsg err">${esc(e.message)}</p>`;return;}
        const pre='e'+Math.random().toString(36).slice(2,8)+'-';
+       const aAtual=cat==='personagens'?audioOf(id):null;
        box.innerHTML=`<div class="fgrid">${fieldsHTML(KIND[cat],d,pre,true)}</div>
-        <div class="adm-act"><button class="gold-btn" data-save>SALVAR</button><button class="tbtn" data-cancel>Cancelar</button>${!com&&EDIT[key]?'<button class="tbtn" data-orig style="color:var(--blood)">Voltar ao texto original</button>':''}</div><p class="fmsg" data-emsg></p>`;
+        <div class="fgrid" style="margin-top:14px">
+         <div class="fld"><span>${cat==='ordens'?'Brasão':'Imagem'}</span>${item.img?`<img class="prev" src="${item.img}" alt="" data-pv>`:'<small>Sem imagem</small>'}<input type="file" data-nf accept="image/jpeg,image/png,image/webp"><small>Escolha um arquivo só se quiser trocar. PNG ou JPG${cat==='personagens'?', de preferência 1024 × 1536 (vertical 2:3)':''}.</small></div>
+         ${cat==='personagens'?`<div class="fld"><span>Narração</span>${aAtual?`<audio controls preload="none" src="${aAtual}" style="width:100%"></audio>`:'<small>Sem narração</small>'}<input type="file" data-na accept="audio/*,.mp3,.m4a,.ogg,.wav"><small>Escolha um arquivo só se quiser trocar. MP3, M4A, OGG ou WAV, até 10 MB.</small>${aAtual?'<label class="chk"><input type="checkbox" data-rma> Remover a narração</label>':''}</div>`:''}
+        </div>
+        <div class="adm-act"><button class="gold-btn" data-save>SALVAR</button><button class="tbtn" data-cancel>Cancelar</button>${!com&&EDIT[key]?'<button class="tbtn" data-orig style="color:var(--blood)">Voltar ao original</button>':''}</div><p class="fmsg" data-emsg></p>`;
        wireCla(box);wireCount(box);
        const m=box.querySelector('[data-emsg]'),msg=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
+       box.querySelector('[data-nf]').onchange=ev=>{const f=ev.target.files[0],pv=box.querySelector('[data-pv]');if(f&&pv)pv.src=URL.createObjectURL(f);};
        box.querySelector('[data-cancel]').onclick=()=>{box.hidden=true;box.innerHTML='';};
        const orig=box.querySelector('[data-orig]');
        if(orig)orig.onclick=async()=>{if(orig.dataset.conf!=='1'){orig.dataset.conf='1';orig.textContent='Confirmar: voltar ao original';return;}
-         try{orig.disabled=true;await api(`/rest/v1/edicoes?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+         try{orig.disabled=true;const od=EDIT[key].dados||{};await api(`/rest/v1/edicoes?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+           await apagarArquivos('publico',[od._foto,od._audio].filter(Boolean)).catch(()=>{});
            msg('Texto original restaurado. Atualizando...','ok');setTimeout(()=>location.reload(),900);}catch(e){orig.disabled=false;msg(e.message,'err');}};
        box.querySelector('[data-save]').onclick=async ev=>{const nd=readFields(box.querySelector('.fgrid'));
          if(!nd.n)return msg('O nome não pode ficar vazio.','err');
+         const nf=box.querySelector('[data-nf]').files[0],na=box.querySelector('[data-na]')?.files[0],rma=box.querySelector('[data-rma]')?.checked&&!na;
+         if(nf&&!/^image\/(png|jpeg|webp)$/.test(nf.type))return msg('A imagem precisa ser PNG, JPG ou WEBP.','err');
+         let aExt=null,aType=null;
+         if(na){aExt=AUDIO_EXT[na.type]||(na.name.split('.').pop()||'').toLowerCase();aType=EXT_AUDIO[aExt];
+           if(!aType)return msg('Formato de áudio não aceito. Use MP3, M4A, OGG ou WAV.','err');if(na.size>10*1024*1024)return msg('A narração passou de 10 MB.','err');}
          ev.target.disabled=true;msg('Salvando...');
          try{
-           if(com)await api(`/rest/v1/envios?id=eq.${id.slice(2)}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({dados:nd,revisado_em:new Date().toISOString(),revisado_por:ses.email})});
-           else await api('/rest/v1/edicoes?on_conflict=tipo,item_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({tipo:cat,item_id:id,dados:nd,editado_em:new Date().toISOString(),editado_por:ses.email})});
+           const up=async(path,blob,type)=>{const r=await fetch(`${CONFIG.dbUrl}/storage/v1/object/publico/${path}`,{method:'POST',headers:await H({'Content-Type':type,'x-upsert':'true'}),body:blob});if(!r.ok)throw new Error('Não consegui enviar o arquivo.');return path;};
+           const novaFoto=nf?await up(`foto/${crypto.randomUUID()}.jpg`,await prepFoto(nf,cat==='personagens'?'personagem':'cla'),'image/jpeg'):null;
+           const novoAudio=na?await up(`audio/${crypto.randomUUID()}.${aExt}`,na,aType):null;
+           const velhos=[];
+           if(com){const body={dados:nd,revisado_em:new Date().toISOString(),revisado_por:ses.email};
+             if(novaFoto){body.foto=novaFoto;if(row.foto)velhos.push(row.foto);}
+             if(novoAudio||rma){body.audio=novoAudio;if(row.audio)velhos.push(row.audio);}
+             await api(`/rest/v1/envios?id=eq.${id.slice(2)}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)});}
+           else{const prev=EDIT[key]?EDIT[key].dados||{}:{};
+             nd._foto=novaFoto||prev._foto;if(novaFoto&&prev._foto)velhos.push(prev._foto);
+             if(novoAudio||rma){if(prev._audio)velhos.push(prev._audio);}
+             nd._audio=novoAudio||(rma?undefined:prev._audio);nd._semAudio=rma||(!novoAudio&&prev._semAudio)||undefined;
+             await api('/rest/v1/edicoes?on_conflict=tipo,item_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({tipo:cat,item_id:id,dados:nd,editado_em:new Date().toISOString(),editado_por:ses.email})});}
+           await apagarArquivos('publico',velhos).catch(()=>{});
            msg('Salvo! Já está no site. Atualizando...','ok');setTimeout(()=>location.reload(),900);
          }catch(e){ev.target.disabled=false;msg(e.message,'err');}};
      }
