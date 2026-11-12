@@ -200,7 +200,8 @@ img{max-width:100%}
 .compose input,.compose textarea{width:100%;padding:9px 11px;background:#0a0e1a;border:1px solid var(--line);border-radius:6px;outline:none;resize:vertical}
 .packs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .pack{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:18px 16px;display:flex;flex-direction:column;gap:12px}
-.pack.top{border-color:var(--gold-dim);background:linear-gradient(180deg,#1d1810,var(--card2))}
+.pack.top{border-color:var(--gold-dim);background:linear-gradient(180deg,#1d1810,var(--card2));position:relative}
+.pack .best{position:absolute;top:-11px;right:14px;padding:4px 10px;border-radius:999px;background:var(--gold);color:#1a1206;font-size:9.5px;font-weight:700;letter-spacing:.16em;white-space:nowrap;box-shadow:0 4px 14px rgba(210,165,84,.25)}
 .price{font-family:var(--display);color:var(--gold-lt);line-height:1}
 .price small{font-size:13px;vertical-align:top;margin-right:3px;color:var(--gold)}
 .price b{font-size:40px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -764,7 +765,7 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 {
  const it=k=>byId('itens',k);
  page('doar','gift','Pacotes de Doação','Apoie Pandherya e receba itens exclusivos!',`
-  <div class="packs">${PACKS.map(p=>`<div class="pack ${p.top?'top':''}">
+  <div class="packs">${PACKS.map(p=>`<div class="pack ${p.top?'top':''}">${p.top?'<span class="best">MELHOR CUSTO-BENEFÍCIO</span>':''}
     <div class="price"><small>R$</small><b>${p.p}</b></div>
     <div class="runes"><img src="assets/i-runas.jpg" alt="">${p.r} runas prata</div>
     <ul>${p.i.map(k=>`<li><img src="${it(k).img}" alt="">${it(k).n}</li>`).join('')}</ul></div>`).join('')}</div>
