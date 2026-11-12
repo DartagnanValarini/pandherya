@@ -292,6 +292,8 @@ footer .flk:not([href]){cursor:default}
 .chk{display:flex;gap:10px;align-items:flex-start;color:var(--muted);line-height:1.5;font-size:13px}
 .chk input{margin-top:3px;accent-color:var(--gold)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.fmsg.floki{display:grid;gap:6px;padding:12px 14px;border-left:2px solid var(--blood);background:#1a0c0c;border-radius:0 6px 6px 0;color:var(--text)}
+.fmsg.floki em{color:var(--muted);font-size:12.5px}.fmsg.floki span{font-family:var(--display);color:var(--gold-lt);line-height:1.5}.fmsg.floki small{color:var(--blood);font-size:11px}
 .fmsg{margin:14px 0 0;line-height:1.5;color:var(--muted)}.fmsg.ok{color:var(--gold-lt)}.fmsg.err{color:var(--blood)}
 .fld{position:relative}
 .fld>span{display:flex;align-items:center;gap:6px}
@@ -1039,7 +1041,20 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
     <div><button class="gold-btn" type="submit">ENTRAR</button></div><p class="fmsg err" id="al-m">${m}</p></form></div>`;
    root.querySelector('#al').addEventListener('submit',async ev=>{ev.preventDefault();const m=root.querySelector('#al-m');m.textContent='Entrando...';m.className='fmsg';
      try{await auth({email:root.querySelector('#al-e').value.trim(),password:root.querySelector('#al-s').value},'password');await listView();}
-     catch(e){m.textContent=e.message;m.className='fmsg err';}});}
+     catch(e){if(/incorretos/.test(e.message)){const f=floki();m.className='fmsg floki';m.innerHTML=`${f[0]?`<em>${f[0]}</em>`:''}<span>${f[1]}</span><small>E-mail ou senha incorretos.</small>`;}
+       else{m.textContent=e.message;m.className='fmsg err';}}});}
+ /* senha errada: Floki responde (uma frase diferente a cada tentativa) */
+ const FLOKI=[
+  ['Floki inclina a cabeça devagar... e solta uma risadinha','Querendo enganar o rei da mentira? Hehehe... Até os corvos riram dessa senha.'],
+  ['','Senha errada... ou certa para outra porta. Qual das duas você bateu? Hehehe... - diz Floki, girando a adaga entre os dedos'],
+  ['Floki fecha os olhos, como quem escuta algo muito distante','Os ossos disseram que você viria. Não disseram que erraria a senha... mas eu desconfiava.'],
+  ['','Mentir para mim é como vender neve em Jotunheim, viajante. Tente de novo... ou não. Hehehe...'],
+  ['Floki aparece encostado na porta, sem que ninguém tenha visto ele chegar','Toda porta guarda um segredo. Esta guarda o dela melhor do que você guarda o seu.'],
+  ['','Hehehe... Errar uma vez é destino. Errar duas é teimosia. Errar três... é diversão para mim. - Floki ri de forma estranha e satírica'],
+  ['Floki vira as costas, falando mais para si mesmo do que para você','Quem não sabe a senha bate na porta. Quem sabe... nem precisa bater.']
+ ];
+ let flokiUlt=-1;
+ const floki=()=>{let i;do{i=Math.floor(Math.random()*FLOKI.length);}while(i===flokiUlt&&FLOKI.length>1);flokiUlt=i;return FLOKI[i];};
  let aba='pendente';try{aba=sessionStorage.getItem('pdy-aba')||'pendente';}catch(e){}
  async function listView(){
    const ok=await api('/rest/v1/rpc/is_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>false);
