@@ -308,6 +308,8 @@ footer .flk:not([href]){cursor:default}
 .oc-list{display:grid;gap:8px}
 .oc-item .oc-edit{border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;padding:14px;margin-top:-4px;background:#0a0e1a}
 .oc-row .tbtn{flex:none}
+.oc-row{flex-wrap:wrap}.oc-row .nm{min-width:180px}
+.oc-item>.fmsg:empty{display:none}
 .mtext,.cbody,.post,.transcript,.clue,.quote,.oc-row .nm,.adm-item,.qitem span{overflow-wrap:anywhere;word-break:break-word}
 .oc-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 .oc-row img{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none}
@@ -1018,20 +1020,35 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
      if(!rows.length){list.innerHTML=`<div class="empty"><h4>Nada aqui</h4><p>${aba==='pendente'?'Nenhuma história esperando aprovação.':'Nenhum envio nesta lista.'}</p></div>`;return;}
      list.innerHTML=aba==='aprovado'?`<div class="adm-act" style="margin:0 0 14px;justify-content:flex-end"><button class="tbtn" id="adm-arq-all">Tirar todos da lista (${rows.length})</button></div>`:'';
      const aa=list.querySelector('#adm-arq-all');if(aa)aa.onclick=async()=>{if(aa.dataset.conf!=='1'){aa.dataset.conf='1';aa.textContent='Confirmar: tirar todos da lista';return;}aa.disabled=true;try{await api(`/rest/v1/envios?status=eq.aprovado&arquivado=eq.false`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({arquivado:true})});listView();}catch(err){aa.disabled=false;aa.textContent=err.message;}};
-     for(const e of rows){const el=document.createElement('div');el.className='adm-item';
-       const quando=new Date(e.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
-       el.innerHTML=`<div class="adm-head"><span><b>${e.tipo==='cla'?'Clã':'Personagem'}</b></span><span>${quando}${ctt[e.id]?' · Discord: '+esc(ctt[e.id]):''}</span></div>
-        <div class="fgrid">${fieldsHTML(e.tipo,e.dados||{},'a'+e.id.slice(0,8)+'-',true)}</div>
-        <div class="fgrid" style="margin-top:14px"><div class="fld"><span>${e.tipo==='cla'?'Brasão':'Foto'}</span><div data-foto>${e.foto?'<small>Carregando...</small>':'<small>Sem imagem</small>'}</div></div>
-        ${e.tipo==='personagem'?`<div class="fld"><span>Narração</span><div data-audio>${e.audio?'<small>Carregando...</small>':'<small>Sem narração</small>'}</div></div>`:''}</div>
-        <div class="adm-act">${aba==='pendente'?`<button class="gold-btn" data-act="aprovar">APROVAR</button><button class="gold-btn danger" data-act="recusar">RECUSAR</button>`
-          :aba==='aprovado'?`<button class="gold-btn" data-act="arquivar">TIRAR DA LISTA</button><button class="gold-btn" data-act="salvar">SALVAR ALTERAÇÕES</button><button class="gold-btn danger" data-act="tirar">TIRAR DO SITE</button>`
-          :`<button class="gold-btn danger" data-act="apagar">APAGAR DE VEZ</button>`}</div><p class="fmsg" data-msg></p>`;
-       list.appendChild(el);wireCla(el);wireCount(el);
+     const btns={pendente:`<button class="tbtn" data-act="aprovar" style="color:var(--gold)">Aprovar</button><button class="tbtn" data-act="recusar" style="color:var(--blood)">Recusar</button>`,
+       aprovado:`<button class="tbtn" data-act="arquivar">Tirar da lista</button><button class="tbtn" data-act="tirar" style="color:var(--blood)">Tirar do site</button>`,
+       recusado:`<button class="tbtn" data-act="apagar" style="color:var(--blood)">Apagar de vez</button>`}[aba];
+     const box=document.createElement('div');box.className='oc-list';list.appendChild(box);
+     for(const e of rows){const el=document.createElement('div');el.className='oc-item';
+       const quando=new Date(e.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}),dd=e.dados||{};
+       el.innerHTML=`<div class="oc-row"><span class="th" data-th style="width:40px;height:40px;flex:none;border-radius:6px;background:#05070d;overflow:hidden">${e.foto&&aba==='aprovado'?`<img src="${PUB(e.foto)}" alt="" style="width:40px;height:40px">`:''}</span>
+         <div class="nm">${esc(dd.n||'(sem nome)')}<small>${e.tipo==='cla'?'Clã':'Personagem'}${dd.ep?' · '+esc(dd.ep):''} · ${quando}${ctt[e.id]?' · Discord: '+esc(ctt[e.id]):''}</small></div>
+         <button class="tbtn" data-open>${aba==='recusado'?'Ver':'Abrir / editar'}</button>${btns}</div>
+         <div class="oc-edit" hidden></div><p class="fmsg" data-msg style="margin:6px 0 0"></p>`;
+       box.appendChild(el);
        const bk=aba==='aprovado'?'publico':'envios';
-       if(e.foto){const u=aba==='aprovado'?PUB(e.foto):await blobUrl(bk,e.foto);el.querySelector('[data-foto]').innerHTML=u?`<img class="prev" src="${u}" alt="">`:'<small>Arquivo não encontrado</small>';}
-       if(e.audio&&e.tipo==='personagem'){const u=aba==='aprovado'?PUB(e.audio):await blobUrl(bk,e.audio);el.querySelector('[data-audio]').innerHTML=u?`<audio controls preload="none" src="${u}" style="width:100%"></audio>`:'<small>Arquivo não encontrado</small>';}
-       el.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>acao(b.dataset.act,e,el)));
+       if(e.foto&&aba!=='aprovado')blobUrl(bk,e.foto).then(u=>{if(u)el.querySelector('[data-th]').innerHTML=`<img src="${u}" alt="" style="width:40px;height:40px;object-fit:cover">`;});
+       el.querySelector('[data-open]').onclick=async()=>{const ed=el.querySelector('.oc-edit');
+         if(!ed.hidden){ed.hidden=true;ed.innerHTML='';return;}
+         ed.hidden=false;
+         const fotoU=e.foto?(aba==='aprovado'?PUB(e.foto):await blobUrl(bk,e.foto)):null,audU=e.audio&&e.tipo==='personagem'?(aba==='aprovado'?PUB(e.audio):await blobUrl(bk,e.audio)):null;
+         const troca=aba==='aprovado';
+         ed.innerHTML=`<div class="fgrid">${fieldsHTML(e.tipo,dd,'a'+e.id.slice(0,8)+'-',true)}</div>
+          <div class="fgrid" style="margin-top:14px">
+           <div class="fld"><span>${e.tipo==='cla'?'Brasão':'Imagem'}</span>${fotoU?`<img class="prev" src="${fotoU}" alt="" data-pv>`:'<small>Sem imagem</small>'}${troca?`<input type="file" data-nf accept="image/jpeg,image/png,image/webp"><small>Escolha um arquivo só se quiser trocar.</small>`:''}</div>
+           ${e.tipo==='personagem'?`<div class="fld"><span>Narração</span>${audU?`<audio controls preload="none" src="${audU}" style="width:100%"></audio>`:'<small>Sem narração</small>'}${troca?`<input type="file" data-na accept="audio/*,.mp3,.m4a,.ogg,.wav"><small>Escolha um arquivo só se quiser trocar. MP3, M4A, OGG ou WAV, até 10 MB.</small>${audU?'<label class="chk"><input type="checkbox" data-rma> Remover a narração</label>':''}`:''}</div>`:''}
+          </div>
+          <div class="adm-act">${aba==='pendente'?`<button class="gold-btn" data-act="aprovar">APROVAR</button><button class="gold-btn danger" data-act="recusar">RECUSAR</button>`
+            :aba==='aprovado'?`<button class="gold-btn" data-act="salvar">SALVAR ALTERAÇÕES</button>`:''}</div>`;
+         wireCla(ed);wireCount(ed);
+         const nf=ed.querySelector('[data-nf]');if(nf)nf.onchange=ev=>{const f=ev.target.files[0],pv=ed.querySelector('[data-pv]');if(f&&pv)pv.src=URL.createObjectURL(f);};
+         ed.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>acao(b.dataset.act,e,el));};
+       el.querySelectorAll('.oc-row [data-act]').forEach(b=>b.onclick=()=>acao(b.dataset.act,e,el));
      }
    }catch(err){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(err.message)}</p>`;}
  }
@@ -1154,7 +1171,7 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
  async function apagarArquivos(bucket,paths){if(paths.length)await api(`/storage/v1/object/${bucket}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:paths})});}
  async function acao(act,e,el){
    const m=el.querySelector('[data-msg]'),say=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
-   const d=readFields(el.querySelector('.fgrid'));
+   const g=el.querySelector('.oc-edit .fgrid'),d=g?readFields(g):Object.assign({},e.dados||{});
    if(!['recusar','apagar','tirar','arquivar'].includes(act)){const falta=FORM[e.tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);if(falta.length)return say('Preencha: '+falta.join(', ')+'.','err');}
    if(act==='apagar'&&!confirmar(el,'Apagar este envio de vez? Não dá para desfazer.'))return;
    if(act==='tirar'&&!confirmar(el,'Tirar esta história do site? Ela vai para Recusados e os arquivos públicos são apagados.'))return;
@@ -1169,7 +1186,17 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
        await patch(Object.assign({status:'aprovado',dados:d},marca));
        await apagarArquivos('envios',arquivos(e)).catch(()=>{});
      }else if(act==='recusar'){await apagarArquivos('envios',arquivos(e)).catch(()=>{});await patch(Object.assign({status:'recusado',dados:d,foto:null,audio:null},marca));}
-     else if(act==='salvar'){await patch(Object.assign({dados:d},marca));}
+     else if(act==='salvar'){
+       const nf=el.querySelector('[data-nf]')?.files[0],na=el.querySelector('[data-na]')?.files[0],rma=el.querySelector('[data-rma]')?.checked&&!na;
+       const body=Object.assign({dados:d},marca),velhos=[];
+       const up=async(path,blob,type)=>{const r=await fetch(`${CONFIG.dbUrl}/storage/v1/object/publico/${path}`,{method:'POST',headers:await H({'Content-Type':type,'x-upsert':'true'}),body:blob});if(!r.ok)throw new Error('Não consegui enviar o arquivo.');return path;};
+       if(nf){if(!/^image\/(png|jpeg|webp)$/.test(nf.type))throw new Error('A imagem precisa ser PNG, JPG ou WEBP.');
+         body.foto=await up(`foto/${crypto.randomUUID()}.jpg`,await prepFoto(nf,e.tipo),'image/jpeg');if(e.foto)velhos.push(e.foto);}
+       if(na){const ext=AUDIO_EXT[na.type]||(na.name.split('.').pop()||'').toLowerCase(),type=EXT_AUDIO[ext];
+         if(!type)throw new Error('Formato de áudio não aceito. Use MP3, M4A, OGG ou WAV.');if(na.size>10*1024*1024)throw new Error('A narração passou de 10 MB.');
+         body.audio=await up(`audio/${crypto.randomUUID()}.${ext}`,na,type);if(e.audio)velhos.push(e.audio);}
+       else if(rma){body.audio=null;if(e.audio)velhos.push(e.audio);}
+       await patch(body);await apagarArquivos('publico',velhos).catch(()=>{});}
      else if(act==='arquivar'){await patch({arquivado:true});}
      else if(act==='tirar'){await apagarArquivos('publico',arquivos(e)).catch(()=>{});await patch(Object.assign({status:'recusado',foto:null,audio:null},marca));}
      else if(act==='apagar'){await apagarArquivos('envios',arquivos(e)).catch(()=>{});await api(`/rest/v1/envios?id=eq.${e.id}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});}
