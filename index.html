@@ -286,6 +286,22 @@ footer .flk:not([href]){cursor:default}
 .chk input{margin-top:3px;accent-color:var(--gold)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .fmsg{margin:14px 0 0;line-height:1.5;color:var(--muted)}.fmsg.ok{color:var(--gold-lt)}.fmsg.err{color:var(--blood)}
+.fld{position:relative}
+.fld>span{display:flex;align-items:center;gap:6px}
+.fld>span label{cursor:pointer}
+.ibtn{width:16px;height:16px;border-radius:50%;border:1px solid var(--gold-dim);background:none;color:var(--gold);font:italic 700 10px/14px Georgia,serif;letter-spacing:0;text-transform:none;padding:0;cursor:pointer;display:inline-grid;place-items:center;flex:none}
+.ibtn:hover,.ibtn:focus-visible{background:var(--gold-bg)}
+.ipop{position:absolute;z-index:30;top:22px;left:0;right:0;max-width:440px;background:#0b0f1c;border:1px solid var(--gold-dim);border-radius:8px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.6);font-size:12.5px;line-height:1.55;letter-spacing:0;text-transform:none;color:var(--text);font-family:var(--ui)}
+.ipop i{color:var(--muted)}.ipop b{color:var(--gold)}
+.cnt{font-size:11px}.cnt.good{color:#7fb77e}.cnt.bad{color:var(--blood)}
+.guia-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 18px;padding:12px 14px;border:1px dashed var(--gold-dim);border-radius:8px;color:var(--muted);font-size:13px}
+.mbox.guia{display:block;width:min(1180px,100%);padding:10px;position:relative}
+.mbox.guia img{display:block;width:100%;height:auto;border-radius:6px}
+.mbox.guia .mclose{position:absolute;top:16px;right:16px;float:none;background:rgba(5,7,13,.8)}
+.oc-list{display:grid;gap:8px}
+.oc-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.oc-row img{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none}
+.oc-row .nm{flex:1;min-width:0}.oc-row .nm small{display:block;color:var(--muted);font-size:11px}
 .adm-item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:16px}
 .adm-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:14px;color:var(--muted);font-size:12px}
 .adm-head b{color:var(--gold);font-family:var(--display);font-weight:500;font-size:16px;letter-spacing:.05em}
@@ -542,6 +558,13 @@ async function carregarAprovados(){
       if(e.audio)AUDIO_EXTRA[id]=PUB(e.audio);
       DATA.personagens.push(it);});
   }catch(e){}
+  /* personagens e clãs removidos pelos admins (aba NO SITE do #admin) */
+  try{
+    const r=await fetch(`${CONFIG.dbUrl}/rest/v1/ocultos?select=tipo,item_id`,{headers:{apikey:CONFIG.dbKey}});
+    if(r.ok){const oc=await r.json(),h=new Set(oc.map(o=>o.tipo+':'+o.item_id));
+      ['personagens','ordens'].forEach(cat=>{DATA[cat]=DATA[cat].filter(it=>!h.has(cat+':'+it.id));});
+      const clas=new Set(DATA.ordens.map(o=>o.id));DATA.personagens.forEach(p=>{if(p.cla&&!clas.has(p.cla))p.cla='';});}
+  }catch(e){}
 }
 await carregarAprovados();
 DATA.personagens.sort(ORD);DATA.ordens.sort(ORD);
@@ -792,83 +815,124 @@ const audioOf=id=>AUDIO_EXTRA[id]||(AUDIO.has(id)?`assets/audio/${id}.mp3`:null)
 }
 
 /* ---- inclua sua história (envio para aprovação) ---- */
-/* Campos dos formulários — usados no envio e no painel #admin. */
+/* Regras do guia "Envie seu personagem" (assets/guia-personagem.jpg). */
+const REGRAS={loreMin:800,loreMax:1300,fotoW:1024,fotoH:1536};
+/* Campos: [chave, rótulo, obrigatório, tipo, máx, dica curta, texto do (i)] — usados no envio e no painel #admin. */
 const FORM={
  personagem:[
-  ['n','Nome',1,'text',40,'Como seu personagem é chamado'],
-  ['ep','Epíteto ou ocupação',0,'text',60,'Ex.: O Arauto do Caos, Ferreiro da vila'],
-  ['t','Classe',0,'text',30,'Ex.: Guerreiro, Maga, Curandeira'],
-  ['s','Raça',0,'text',80,'Ex.: Humano, elfo, anão, etc'],
-  ['cla','Seu clã',0,'cla'],
-  ['cla_outro','Nome do clã',0,'text',60,'Se o seu clã não está na lista'],
-  ['txt','História',1,'area',8000,'Separe os parágrafos com uma linha em branco'],
-  ['q','Sua frase',0,'text',200,'Uma frase marcante do seu personagem']
+  ['n','Nome',1,'text',40,'Como seu personagem é chamado','Nome do personagem como ele é conhecido em Pandherya.<br><i>Ex.: Sigurdr, Yume Eir, Aryya.</i>'],
+  ['ep','Epíteto ou ocupação',0,'text',60,'Ex.: O Arauto do Caos, Ferreiro da vila','Opcional. Um título, apelido ou ofício que acompanha o nome.<br><i>Ex.: O Jarl do Clã do Corvo, A Curandeira de Pandherya.</i>'],
+  ['t','Classe',1,'text',30,'Ex.: Guerreiro, Maga, Curandeira','Classe ou profissão do personagem.<br><i>Ex.: Guerreiro, Maga, Arqueiro, Curandeira, Ferreiro.</i>'],
+  ['s','Raça',1,'text',80,'Ex.: Humano, elfo, anão, etc','A raça do personagem.<br><i>Ex.: Humano, elfo, anão, meio-gigante.</i>'],
+  ['cla','Seu clã',0,'cla',0,'','Guilda ou clã, se houver. Se o seu não estiver na lista, escolha <b>Outro</b> e escreva o nome. Sem clã também vale.'],
+  ['cla_outro','Nome do clã',0,'text',60,'Se o seu clã não está na lista',''],
+  ['txt','História',1,'lore',REGRAS.loreMax,'Separe os parágrafos com uma linha em branco',`Conte a trajetória do personagem de forma envolvente e coerente. Entre <b>${REGRAS.loreMin}</b> e <b>${REGRAS.loreMax.toLocaleString('pt-BR')}</b> caracteres, contando espaços e pontuação.<br><br>Estrutura recomendada:<br>• <b>Origem:</b> quem é, de onde vem e seu passado.<br>• <b>Personalidade:</b> virtudes, defeitos e motivações.<br>• <b>Jornada:</b> acontecimentos marcantes, conquistas e perdas.<br>• <b>Presente:</b> sua situação atual em Pandherya e seus objetivos.`],
+  ['q','Sua frase',0,'text',200,'Opcional, fora da contagem da história','Opcional e fora da contagem de caracteres. Uma citação que represente o personagem.<br><i>Ex.: “Nem toda ausência é morte. Nem todo silêncio é vazio.”</i>']
  ],
  cla:[
-  ['n','Nome do clã',1,'text',50,''],
-  ['lema','Lema',0,'text',200,'A frase que representa o clã'],
-  ['txt','História do clã',1,'area',8000,'Separe os parágrafos com uma linha em branco']
+  ['n','Nome do clã',1,'text',50,'','O nome do clã ou guilda.<br><i>Ex.: Clã do Corvo, Lox Bêbado.</i>'],
+  ['lema','Lema',0,'text',200,'A frase que representa o clã','Opcional. A frase ou juramento do clã.<br><i>Ex.: “Enquanto houver um Corvo de pé, nosso estandarte jamais tocará o chão.”</i>'],
+  ['txt','História do clã',1,'area',8000,'Separe os parágrafos com uma linha em branco','A história do clã: como surgiu, quem o fundou, no que acredita e onde está hoje em Pandherya.']
  ]
 };
+const infoBtn=t=>t?`<button type="button" class="ibtn" aria-label="Como preencher este campo" data-info>i</button><span class="ipop" hidden>${t}</span>`:'';
 const claOptions=sel=>`<option value="">Sem clã</option>${DATA.ordens.map(o=>`<option value="${o.id}"${o.id===sel?' selected':''}>${o.n}</option>`).join('')}<option value="outro"${sel==='outro'?' selected':''}>Outro (não está na lista)</option>`;
-function fieldsHTML(tipo,d={},pre=''){
-  return FORM[tipo].map(([k,label,req,kind,max,hint])=>{
-    const v=d[k]??'',id=pre+k,cls=kind==='area'?'fld full':'fld';
+function fieldsHTML(tipo,d={},pre='',admin=false){
+  return FORM[tipo].map(([k,label,req,kind,max,hint,info])=>{
+    const v=d[k]??'',id=pre+k,cls=kind==='area'||kind==='lore'?'fld full':'fld';
     const hide=k==='cla_outro'&&(d.cla||'')!=='outro'&&!d.cla_outro?' hidden':'';
-    const inp=kind==='area'?`<textarea id="${id}" data-k="${k}" rows="9" maxlength="${max}"${req?' required':''}>${esc(v)}</textarea>`
+    const ml=kind==='lore'&&!admin?'':` maxlength="${max}"`;
+    const inp=kind==='area'||kind==='lore'?`<textarea id="${id}" data-k="${k}" rows="9"${ml}${req?' required':''}>${esc(v)}</textarea>${kind==='lore'?'<small class="cnt" data-cnt></small>':''}`
       :kind==='cla'?`<select id="${id}" data-k="${k}">${claOptions(d.cla_outro&&!d.cla?'outro':v)}</select>`
       :`<input type="text" id="${id}" data-k="${k}" maxlength="${max}" value="${esc(v)}"${req?' required':''}>`;
-    return `<label class="${cls}"${hide} data-wrap="${k}"><span>${label}${req?' <b>*</b>':''}</span>${inp}${hint?`<small>${hint}</small>`:''}</label>`;
+    return `<div class="${cls}"${hide} data-wrap="${k}"><span><label for="${id}">${label}</label>${req?' <b>*</b>':''}${infoBtn(info)}</span>${inp}${hint?`<small>${hint}</small>`:''}</div>`;
   }).join('');
 }
 function readFields(root){const d={};root.querySelectorAll('[data-k]').forEach(el=>{const v=el.value.trim();if(v)d[el.dataset.k]=v;});
   if(d.cla==='outro'){delete d.cla;}else delete d.cla_outro;return d;}
 function wireCla(root){const sel=root.querySelector('[data-k="cla"]'),w=root.querySelector('[data-wrap="cla_outro"]');if(!sel||!w)return;
   const f=()=>{w.hidden=sel.value!=='outro';};sel.addEventListener('change',f);f();}
+function wireCount(root){root.querySelectorAll('[data-cnt]').forEach(c=>{const ta=c.previousElementSibling;
+  const f=()=>{const n=ta.value.trim().length;c.textContent=`${n.toLocaleString('pt-BR')} / ${REGRAS.loreMax.toLocaleString('pt-BR')} caracteres (mínimo ${REGRAS.loreMin})`;
+    c.className='cnt '+(n===0?'':n<REGRAS.loreMin||n>REGRAS.loreMax?'bad':'good');};ta.addEventListener('input',f);f();});}
+/* (i): abre/fecha a explicação do campo */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-info]');
+  document.querySelectorAll('.ipop:not([hidden])').forEach(p=>{if(!b||p!==b.nextElementSibling)p.hidden=true;});
+  if(b){e.preventDefault();const p=b.nextElementSibling;p.hidden=!p.hidden;}});
 const AUDIO_EXT={'audio/mpeg':'mp3','audio/mp3':'mp3','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/aac':'aac','audio/ogg':'ogg','audio/webm':'webm','audio/wav':'wav','audio/x-wav':'wav'};
 const EXT_AUDIO={mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',webm:'audio/webm',wav:'audio/wav'};
-/* foto: reduz para no máximo 1200px e salva em JPG */
-function prepFoto(file){return new Promise((ok,fail)=>{const u=URL.createObjectURL(file),im=new Image();
-  im.onload=()=>{const k=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
-    const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
-    c.toBlob(b=>b?ok(b):fail(new Error('Não consegui ler a imagem.')),'image/jpeg',.88);};
-  im.onerror=()=>{URL.revokeObjectURL(u);fail(new Error('Esse arquivo de imagem não abriu. Tente JPG ou PNG.'));};im.src=u;});}
+const lerImagem=file=>new Promise((ok,fail)=>{const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>ok({im,u});im.onerror=()=>{URL.revokeObjectURL(u);fail(new Error('Esse arquivo de imagem não abriu. Use PNG ou JPG.'));};im.src=u;});
+/* checa a imagem do personagem: PNG/JPG, vertical 2:3, pelo menos 1024 × 1536 */
+async function checarFoto(file,tipo){
+  if(!/^image\/(png|jpeg)$/.test(file.type))return 'A imagem precisa ser PNG ou JPG.';
+  if(file.size>25*1024*1024)return 'A imagem é muito grande (máximo 25 MB).';
+  if(tipo!=='personagem')return '';
+  const {im,u}=await lerImagem(file);URL.revokeObjectURL(u);
+  const r=im.width/im.height;
+  if(Math.abs(r-2/3)>0.02)return `A imagem precisa ser vertical na proporção 2:3 (a sua tem ${im.width} × ${im.height} px).`;
+  if(im.width<REGRAS.fotoW||im.height<REGRAS.fotoH)return `A imagem precisa ter pelo menos ${REGRAS.fotoW} × ${REGRAS.fotoH} px (a sua tem ${im.width} × ${im.height} px).`;
+  return '';
+}
+/* foto: personagem fica em 1024 × 1536; brasão até 1200 px; tudo salvo em JPG */
+async function prepFoto(file,tipo){const {im,u}=await lerImagem(file);
+  const max=tipo==='personagem'?REGRAS.fotoH:1200,k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');
+  c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+  const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
+  return new Promise((ok,fail)=>c.toBlob(b=>b?ok(b):fail(new Error('Não consegui ler a imagem.')),'image/jpeg',.9));}
 async function subir(bucket,path,blob,type,headers={}){
   const r=await fetch(`${CONFIG.dbUrl}/storage/v1/object/${bucket}/${path}`,{method:'POST',headers:Object.assign({apikey:CONFIG.dbKey,'Content-Type':type},headers),body:blob});
   if(!r.ok)throw new Error('Não foi possível enviar o arquivo agora. Tente de novo.');}
+function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclose" id="mclose">Fechar</button><img src="assets/guia-personagem.jpg" alt="Envie seu personagem: imagem 1024 × 1536 px, proporção 2:3 vertical, PNG ou JPG, estilo nórdico/medieval realista. História entre 800 e 1.300 caracteres. Informações obrigatórias: nome, raça, classe, história e imagem. Todo envio é analisado pela administração."></div>`;modal.hidden=false;}
 {
  const s=page('enviar','quill','Inclua sua História','Conte a história do seu personagem ou do seu clã. Os admins revisam e, se aprovada, ela entra no compêndio.',`
   <div class="sub-wrap"><div class="box">
    <div class="seg"><button type="button" data-tipo="personagem" class="on">PERSONAGEM</button><button type="button" data-tipo="cla">CLÃ</button></div>
+   <div class="guia-bar" id="sf-guia"><span>Antes de enviar, veja o padrão de imagem e de história.</span><button type="button" class="gold-btn" id="sf-guia-btn">COMO PREENCHER</button></div>
    <form id="sf" novalidate>
     <div class="fgrid" id="sf-fields"></div>
     <div class="fgrid" style="margin-top:14px">
-     <label class="fld"><span id="sf-foto-l">Sua foto</span><input type="file" id="sf-foto" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG ou WEBP. A imagem é reduzida automaticamente.</small><img class="prev" id="sf-prev" hidden alt=""></label>
-     <label class="fld" id="sf-audio-w"><span>Sua narração</span><input type="file" id="sf-audio" accept="audio/*,.mp3,.m4a,.ogg,.wav"><small>MP3, M4A, OGG ou WAV, até 10 MB.</small></label>
-     <label class="fld full"><span>Seu nick no Discord</span><input type="text" id="sf-contato" maxlength="60"><small>Opcional. Só os admins veem, para falar com você se precisar.</small></label>
+     <div class="fld" data-wrap="foto"><span><label for="sf-foto" id="sf-foto-l">Imagem do personagem</label> <b id="sf-foto-req">*</b><button type="button" class="ibtn" aria-label="Como preencher este campo" data-info>i</button><span class="ipop" hidden id="sf-foto-info"></span></span>
+      <input type="file" id="sf-foto" accept="image/jpeg,image/png"><small id="sf-foto-hint"></small><small class="cnt bad" id="sf-foto-err" hidden></small><img class="prev" id="sf-prev" hidden alt=""></div>
+     <div class="fld" id="sf-audio-w"><span><label for="sf-audio">Sua narração</label><button type="button" class="ibtn" aria-label="Como preencher este campo" data-info>i</button><span class="ipop" hidden>Opcional. Um áudio com você (ou alguém) narrando a história do personagem. Ele aparece no card e no Narrador do site.<br><i>Formatos: MP3, M4A, OGG ou WAV, até 10 MB.</i></span></span>
+      <input type="file" id="sf-audio" accept="audio/*,.mp3,.m4a,.ogg,.wav"><small>MP3, M4A, OGG ou WAV, até 10 MB.</small></div>
+     <div class="fld full"><span><label for="sf-contato">Seu nick no Discord</label><button type="button" class="ibtn" aria-label="Como preencher este campo" data-info>i</button><span class="ipop" hidden>Opcional. Só os admins veem. Serve para avisar você se a história precisar de ajustes.<br><i>Ex.: forseti_lox</i></span></span><input type="text" id="sf-contato" maxlength="60"><small>Opcional. Só os admins veem, para falar com você se precisar.</small></div>
      <label class="hp" aria-hidden="true">Site<input type="text" id="sf-site" tabindex="-1" autocomplete="off"></label>
      <label class="chk full"><input type="checkbox" id="sf-ok"> Autorizo o Pandherya a publicar este texto, a imagem e a narração no site. O conteúdo é meu ou tenho permissão para usá-lo.</label>
     </div>
-    <div style="margin-top:18px"><button class="gold-btn" type="submit" id="sf-btn">ENVIAR PARA APROVAÇÃO</button></div>
+    <p class="fmsg" style="margin-top:14px">Todo envio é analisado pela administração e pode ser aprovado, devolvido para ajustes ou recusado.</p>
+    <div style="margin-top:12px"><button class="gold-btn" type="submit" id="sf-btn">ENVIAR PARA APROVAÇÃO</button></div>
     <p class="fmsg" id="sf-msg" role="status"></p>
    </form></div></div>`);
- const $=id=>s.querySelector('#'+id);let tipo='personagem';
+ const $=id=>s.querySelector('#'+id);let tipo='personagem',fotoErr='';
  const msg=(t,c='')=>{const m=$('sf-msg');m.textContent=t;m.className='fmsg '+c;};
- function render(){$('sf-fields').innerHTML=fieldsHTML(tipo,{},'sf-');wireCla($('sf-fields'));
-   $('sf-audio-w').hidden=tipo!=='personagem';$('sf-foto-l').textContent=tipo==='cla'?'Brasão do clã':'Sua foto';
-   s.querySelectorAll('[data-tipo]').forEach(b=>b.classList.toggle('on',b.dataset.tipo===tipo));}
+ const FOTO_INFO={
+  personagem:`Corpo inteiro (preferencial) ou retrato, em alta qualidade.<br>• Resolução: <b>${REGRAS.fotoW} × ${REGRAS.fotoH} px</b> (ou maior, na mesma proporção)<br>• Proporção: <b>2:3 vertical</b><br>• Formato: <b>PNG ou JPG</b><br>• Estilo: nórdico/medieval realista, com o personagem em destaque.<br><br>Não são aceitas: imagens cartoon, anime ou desenho; baixa resolução; marcas d'água, textos, logotipos ou interfaces; imagens fora da ambientação de Pandherya.`,
+  cla:'O brasão ou símbolo do clã, de preferência quadrado e com fundo escuro ou transparente.<br><i>Formato: PNG ou JPG.</i>'};
+ function render(){$('sf-fields').innerHTML=fieldsHTML(tipo,{},'sf-');wireCla($('sf-fields'));wireCount($('sf-fields'));
+   $('sf-audio-w').hidden=tipo!=='personagem';$('sf-guia').hidden=tipo!=='personagem';
+   $('sf-foto-l').textContent=tipo==='cla'?'Brasão do clã':'Imagem do personagem';$('sf-foto-req').hidden=tipo!=='personagem';
+   $('sf-foto-info').innerHTML=FOTO_INFO[tipo];
+   $('sf-foto-hint').textContent=tipo==='personagem'?`${REGRAS.fotoW} × ${REGRAS.fotoH} px, vertical 2:3, PNG ou JPG.`:'PNG ou JPG.';
+   s.querySelectorAll('[data-tipo]').forEach(b=>b.classList.toggle('on',b.dataset.tipo===tipo));checkFoto();}
+ async function checkFoto(){const f=$('sf-foto').files[0],e=$('sf-foto-err');fotoErr=f?await checarFoto(f,tipo).catch(x=>x.message):'';e.textContent=fotoErr;e.hidden=!fotoErr;}
  s.querySelectorAll('[data-tipo]').forEach(b=>b.addEventListener('click',()=>{tipo=b.dataset.tipo;render();msg('');}));
+ $('sf-guia-btn').addEventListener('click',abrirGuia);
  $('sf-foto').addEventListener('change',()=>{const f=$('sf-foto').files[0],p=$('sf-prev');if(p.src)URL.revokeObjectURL(p.src);
-   if(f){p.src=URL.createObjectURL(f);p.hidden=false;}else{p.removeAttribute('src');p.hidden=true;}});
+   if(f){p.src=URL.createObjectURL(f);p.hidden=false;}else{p.removeAttribute('src');p.hidden=true;}checkFoto();});
  render();
  $('sf').addEventListener('submit',async ev=>{ev.preventDefault();
    if($('sf-site').value)return;
    const d=readFields($('sf-fields'));
    const falta=FORM[tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);
-   if(falta.length)return msg('Preencha: '+falta.join(', ')+'.','err');
-   if(!$('sf-ok').checked)return msg('Marque a autorização para publicar.','err');
    const foto=$('sf-foto').files[0],audio=tipo==='personagem'?$('sf-audio').files[0]:null;
-   if(foto&&foto.size>25*1024*1024)return msg('A imagem é muito grande (máximo 25 MB).','err');
+   if(tipo==='personagem'&&!foto)falta.push('Imagem do personagem');
+   if(falta.length)return msg('Preencha: '+falta.join(', ')+'.','err');
+   if(tipo==='personagem'){const n=(d.txt||'').length;
+     if(n<REGRAS.loreMin)return msg(`A história precisa ter pelo menos ${REGRAS.loreMin} caracteres (está com ${n}).`,'err');
+     if(n>REGRAS.loreMax)return msg(`A história pode ter no máximo ${REGRAS.loreMax.toLocaleString('pt-BR')} caracteres (está com ${n.toLocaleString('pt-BR')}).`,'err');}
+   if(foto){await checkFoto();if(fotoErr)return msg(fotoErr,'err');}
+   if(!$('sf-ok').checked)return msg('Marque a autorização para publicar.','err');
    let aType=null,aExt=null;
    if(audio){aExt=AUDIO_EXT[audio.type]||(audio.name.split('.').pop()||'').toLowerCase();aType=EXT_AUDIO[aExt];
      if(!aType)return msg('Formato de áudio não aceito. Use MP3, M4A, OGG ou WAV.','err');
@@ -876,7 +940,7 @@ async function subir(bucket,path,blob,type,headers={}){
    const btn=$('sf-btn');btn.disabled=true;msg('Enviando...');
    try{
      const id=crypto.randomUUID();let fp=null,ap=null;
-     if(foto){const b=await prepFoto(foto);fp=`foto/${id}.jpg`;await subir('envios',fp,b,'image/jpeg');}
+     if(foto){const b=await prepFoto(foto,tipo);fp=`foto/${id}.jpg`;await subir('envios',fp,b,'image/jpeg');}
      if(audio){ap=`audio/${id}.${aExt}`;await subir('envios',ap,audio,aType);}
      await DB.add('envios',{id,tipo,dados:d,foto:fp,audio:ap,contato:$('sf-contato').value.trim()||null});
      $('sf').reset();$('sf-prev').hidden=true;render();
@@ -914,11 +978,12 @@ async function subir(bucket,path,blob,type,headers={}){
    const ok=await api('/rest/v1/rpc/is_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>false);
    if(!ok){ses=null;save();return loginView('Esta conta não tem acesso de admin.');}
    root.innerHTML=`<div class="toolbar" style="justify-content:space-between;flex-wrap:wrap">
-     <div class="seg" style="margin:0;flex:1;min-width:280px">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
+     <div class="seg" style="margin:0;flex:1;min-width:280px">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
      <span style="color:var(--muted);font-size:12px">${esc(ses.email||'')} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
    root.querySelectorAll('[data-aba]').forEach(b=>b.addEventListener('click',()=>{aba=b.dataset.aba;listView();}));
    root.querySelector('#adm-out').addEventListener('click',e=>{e.preventDefault();ses=null;save();loginView();});
    const list=root.querySelector('#adm-list');
+   if(aba==='nosite')return noSite(list);
    try{
      const rows=await api(`/rest/v1/envios?select=*&status=eq.${aba}&order=criado_em.${aba==='pendente'?'asc':'desc'}`);
      const priv=rows.length?await api(`/rest/v1/envios_privado?select=envio_id,contato&envio_id=in.(${rows.map(r=>r.id).join(',')})`):[];
@@ -928,18 +993,51 @@ async function subir(bucket,path,blob,type,headers={}){
      for(const e of rows){const el=document.createElement('div');el.className='adm-item';
        const quando=new Date(e.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
        el.innerHTML=`<div class="adm-head"><span><b>${e.tipo==='cla'?'Clã':'Personagem'}</b></span><span>${quando}${ctt[e.id]?' · Discord: '+esc(ctt[e.id]):''}</span></div>
-        <div class="fgrid">${fieldsHTML(e.tipo,e.dados||{},'a'+e.id.slice(0,8)+'-')}</div>
+        <div class="fgrid">${fieldsHTML(e.tipo,e.dados||{},'a'+e.id.slice(0,8)+'-',true)}</div>
         <div class="fgrid" style="margin-top:14px"><div class="fld"><span>${e.tipo==='cla'?'Brasão':'Foto'}</span><div data-foto>${e.foto?'<small>Carregando...</small>':'<small>Sem imagem</small>'}</div></div>
         ${e.tipo==='personagem'?`<div class="fld"><span>Narração</span><div data-audio>${e.audio?'<small>Carregando...</small>':'<small>Sem narração</small>'}</div></div>`:''}</div>
         <div class="adm-act">${aba==='pendente'?`<button class="gold-btn" data-act="aprovar">APROVAR</button><button class="gold-btn danger" data-act="recusar">RECUSAR</button>`
           :aba==='aprovado'?`<button class="gold-btn" data-act="salvar">SALVAR ALTERAÇÕES</button><button class="gold-btn danger" data-act="tirar">TIRAR DO SITE</button>`
           :`<button class="gold-btn danger" data-act="apagar">APAGAR DE VEZ</button>`}</div><p class="fmsg" data-msg></p>`;
-       list.appendChild(el);wireCla(el);
+       list.appendChild(el);wireCla(el);wireCount(el);
        const bk=aba==='aprovado'?'publico':'envios';
        if(e.foto){const u=aba==='aprovado'?PUB(e.foto):await blobUrl(bk,e.foto);el.querySelector('[data-foto]').innerHTML=u?`<img class="prev" src="${u}" alt="">`:'<small>Arquivo não encontrado</small>';}
        if(e.audio&&e.tipo==='personagem'){const u=aba==='aprovado'?PUB(e.audio):await blobUrl(bk,e.audio);el.querySelector('[data-audio]').innerHTML=u?`<audio controls preload="none" src="${u}" style="width:100%"></audio>`:'<small>Arquivo não encontrado</small>';}
        el.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>acao(b.dataset.act,e,el)));
      }
+   }catch(err){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(err.message)}</p>`;}
+ }
+ /* aba NO SITE: remove do site (ou restaura) qualquer personagem ou clã, oficial ou enviado */
+ async function noSite(list){
+   list.innerHTML='<p class="fmsg">Carregando...</p>';
+   try{
+     const oc=await api('/rest/v1/ocultos?select=*&order=ocultado_em.desc');
+     const hid=new Set(oc.map(o=>o.tipo+':'+o.item_id));
+     const vivos=['personagens','ordens'].flatMap(cat=>DATA[cat].map(it=>({cat,it})));
+     const row=(cat,id,nome,img,sub,btn)=>`<div class="oc-row">${img?`<img src="${img}" alt="">`:'<span style="width:40px"></span>'}<div class="nm">${nome}<small>${sub}</small></div>${btn}</div>`;
+     list.innerHTML=`<p class="fmsg" style="margin-top:0">Remover tira o personagem ou clã do site na hora, sem apagar nada: ele vai para a lista de removidos e pode ser restaurado. Histórias enviadas pela comunidade também podem ser tiradas pela aba Aprovados.</p>
+      <label class="search" style="display:block;margin:12px 0">${svg('search')}<input id="oc-q" placeholder="Buscar no site..." aria-label="Buscar"></label>
+      <div class="kicker" style="margin:14px 0 8px">No site agora</div><div class="oc-list" id="oc-vivos"></div>
+      <div class="kicker" style="margin:22px 0 8px">Removidos (${oc.length})</div><div class="oc-list">${oc.length?oc.map(o=>row(o.tipo,o.item_id,esc(o.nome||o.item_id),'',`${o.tipo==='ordens'?'Clã':'Personagem'} · removido por ${esc(o.ocultado_por||'admin')}`,`<button class="tbtn" data-rest="${o.tipo}:${esc(o.item_id)}">Restaurar</button>`)).join(''):'<p class="fmsg" style="margin:0">Nenhum.</p>'}</div>
+      <p class="fmsg" data-ocmsg></p>`;
+     const draw=()=>{const t=list.querySelector('#oc-q').value.trim().toLowerCase();
+       list.querySelector('#oc-vivos').innerHTML=vivos.filter(({it})=>!t||String(it.n).toLowerCase().includes(t)).map(({cat,it})=>row(cat,it.id,it.n,it.img,`${cat==='ordens'?'Clã':'Personagem'}${it.id.startsWith('u-')?' · enviado pela comunidade':''}`,`<button class="tbtn" style="color:var(--blood)" data-rem="${cat}:${it.id}">Remover do site</button>`)).join('')||'<p class="fmsg" style="margin:0">Nada encontrado.</p>';};
+     list.querySelector('#oc-q').addEventListener('input',draw);draw();
+     const say=(t,c='')=>{const m=list.querySelector('[data-ocmsg]');m.textContent=t;m.className='fmsg '+c;};
+     list.onclick=async ev=>{
+       const r=ev.target.closest('[data-rem]'),x=ev.target.closest('[data-rest]');if(!r&&!x)return;
+       const [cat,id]=(r||x).dataset[r?'rem':'rest'].split(/:(.*)/s);
+       try{
+         if(r){const it=DATA[cat].find(i=>i.id===id);
+           if(r.dataset.conf!=='1'){r.dataset.conf='1';r.textContent='Confirmar remoção';return;}
+           r.disabled=true;
+           await api('/rest/v1/ocultos',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({tipo:cat,item_id:id,nome:String(it?it.n:id).replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'),ocultado_por:ses.email})});
+           DATA[cat]=DATA[cat].filter(i=>i.id!==id);
+         }else{x.disabled=true;await api(`/rest/v1/ocultos?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+           say('Restaurado. Recarregue a página para ver de volta no site.','ok');setTimeout(()=>location.reload(),1200);return;}
+         say('Removido do site.','ok');noSite(list);
+       }catch(e){say(e.message,'err');}
+     };
    }catch(err){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(err.message)}</p>`;}
  }
  const arquivos=e=>[e.foto,e.audio].filter(Boolean);
