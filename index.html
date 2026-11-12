@@ -719,7 +719,7 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
     <div class="price"><small>R$</small><b>${p.p}</b></div>
     <div class="runes"><img src="assets/i-runas.jpg" alt="">${p.r} runas prata</div>
     <ul>${p.i.map(k=>`<li><img src="${it(k).img}" alt="">${it(k).n}</li>`).join('')}</ul></div>`).join('')}</div>
-  <div class="packs-foot"><span>Mais diversão, mais aventuras, mais Pandherya! Fortaleça sua lenda!</span><a class="gold-btn" href="${CONFIG.patronoUrl}" target="_blank" rel="noopener">QUERO SER PATRONO</a></div>
+  <div class="packs-foot"><span>Mais diversão, mais aventuras, mais Pandherya! Fortaleça sua lenda!</span><a class="gold-btn" href="${CONFIG.patronoUrl}" target="_blank" rel="noopener">DOAR</a></div>
   <div class="banner" style="margin-top:26px;max-width:960px;margin-inline:auto"><img style="max-height:none" src="assets/patrono.jpg" alt="Tabela dos Pacotes de Patrono"></div>`);
 }
 
@@ -796,9 +796,9 @@ const audioOf=id=>AUDIO_EXTRA[id]||(AUDIO.has(id)?`assets/audio/${id}.mp3`:null)
 const FORM={
  personagem:[
   ['n','Nome',1,'text',40,'Como seu personagem é chamado'],
-  ['ep','Epíteto',0,'text',60,'Ex.: O Arauto do Caos'],
-  ['t','Título',0,'text',30,'Ex.: Guerreiro, Maga, Curandeira'],
-  ['s','Raça • Classe',0,'text',80,'Ex.: Humano • Guerreiro'],
+  ['ep','Epíteto ou ocupação',0,'text',60,'Ex.: O Arauto do Caos, Ferreiro da vila'],
+  ['t','Classe',0,'text',30,'Ex.: Guerreiro, Maga, Curandeira'],
+  ['s','Raça',0,'text',80,'Ex.: Humano, elfo, anão, etc'],
   ['cla','Seu clã',0,'cla'],
   ['cla_outro','Nome do clã',0,'text',60,'Se o seu clã não está na lista'],
   ['txt','História',1,'area',8000,'Separe os parágrafos com uma linha em branco'],
