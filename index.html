@@ -1012,11 +1012,12 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
    const list=root.querySelector('#adm-list');
    if(aba==='nosite')return noSite(list);
    try{
-     const rows=await api(`/rest/v1/envios?select=*&status=eq.${aba}&order=criado_em.${aba==='pendente'?'asc':'desc'}`);
+     const rows=await api(`/rest/v1/envios?select=*&status=eq.${aba}${aba==='aprovado'?'&arquivado=eq.false':''}&order=criado_em.${aba==='pendente'?'asc':'desc'}`);
      const priv=rows.length?await api(`/rest/v1/envios_privado?select=envio_id,contato&envio_id=in.(${rows.map(r=>r.id).join(',')})`):[];
      const ctt=Object.fromEntries(priv.map(p=>[p.envio_id,p.contato]));
      if(!rows.length){list.innerHTML=`<div class="empty"><h4>Nada aqui</h4><p>${aba==='pendente'?'Nenhuma história esperando aprovação.':'Nenhum envio nesta lista.'}</p></div>`;return;}
-     list.innerHTML='';
+     list.innerHTML=aba==='aprovado'?`<div class="adm-act" style="margin:0 0 14px;justify-content:flex-end"><button class="tbtn" id="adm-arq-all">Tirar todos da lista (${rows.length})</button></div>`:'';
+     const aa=list.querySelector('#adm-arq-all');if(aa)aa.onclick=async()=>{if(aa.dataset.conf!=='1'){aa.dataset.conf='1';aa.textContent='Confirmar: tirar todos da lista';return;}aa.disabled=true;try{await api(`/rest/v1/envios?status=eq.aprovado&arquivado=eq.false`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({arquivado:true})});listView();}catch(err){aa.disabled=false;aa.textContent=err.message;}};
      for(const e of rows){const el=document.createElement('div');el.className='adm-item';
        const quando=new Date(e.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
        el.innerHTML=`<div class="adm-head"><span><b>${e.tipo==='cla'?'Clã':'Personagem'}</b></span><span>${quando}${ctt[e.id]?' · Discord: '+esc(ctt[e.id]):''}</span></div>
@@ -1024,7 +1025,7 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
         <div class="fgrid" style="margin-top:14px"><div class="fld"><span>${e.tipo==='cla'?'Brasão':'Foto'}</span><div data-foto>${e.foto?'<small>Carregando...</small>':'<small>Sem imagem</small>'}</div></div>
         ${e.tipo==='personagem'?`<div class="fld"><span>Narração</span><div data-audio>${e.audio?'<small>Carregando...</small>':'<small>Sem narração</small>'}</div></div>`:''}</div>
         <div class="adm-act">${aba==='pendente'?`<button class="gold-btn" data-act="aprovar">APROVAR</button><button class="gold-btn danger" data-act="recusar">RECUSAR</button>`
-          :aba==='aprovado'?`<button class="gold-btn" data-act="salvar">SALVAR ALTERAÇÕES</button><button class="gold-btn danger" data-act="tirar">TIRAR DO SITE</button>`
+          :aba==='aprovado'?`<button class="gold-btn" data-act="arquivar">TIRAR DA LISTA</button><button class="gold-btn" data-act="salvar">SALVAR ALTERAÇÕES</button><button class="gold-btn danger" data-act="tirar">TIRAR DO SITE</button>`
           :`<button class="gold-btn danger" data-act="apagar">APAGAR DE VEZ</button>`}</div><p class="fmsg" data-msg></p>`;
        list.appendChild(el);wireCla(el);wireCount(el);
        const bk=aba==='aprovado'?'publico':'envios';
@@ -1044,14 +1045,18 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
  async function noSite(list){
    list.innerHTML='<p class="fmsg">Carregando...</p>';
    try{
-     const [oc,ed]=await Promise.all([api('/rest/v1/ocultos?select=*&order=ocultado_em.desc'),api('/rest/v1/edicoes?select=tipo,item_id,dados,editado_por,editado_em')]);
+     const [ocAll,ed,apr]=await Promise.all([api('/rest/v1/ocultos?select=*&order=ocultado_em.desc'),api('/rest/v1/edicoes?select=tipo,item_id,dados,editado_por,editado_em'),api('/rest/v1/envios?select=id,tipo,dados,foto&status=eq.aprovado')]);
+     const oc=ocAll.filter(o=>!o.permanente),hidAll=new Set(ocAll.map(o=>o.tipo+':'+o.item_id));
+     /* aprovados depois que a página abriu: entram na lista na hora (cada envio tem código próprio, nomes iguais não conflitam) */
+     apr.forEach(e=>{const cat=e.tipo==='cla'?'ordens':'personagens',id='u-'+e.id;
+       if(!hidAll.has(cat+':'+id)&&!DATA[cat].some(i=>i.id===id))DATA[cat].push({id,n:esc((e.dados&&e.dados.n)||'(sem nome)'),img:PUB(e.foto),t:cat==='ordens'?'Clã':'',txt:[]});});
      const EDIT=Object.fromEntries(ed.map(e=>[e.tipo+':'+e.item_id,e]));
      const vivos=['personagens','ordens'].flatMap(cat=>DATA[cat].map(it=>({cat,it})));
      const row=(nome,img,sub,btns,key)=>`<div class="oc-item"${key?` data-item="${esc(key)}"`:''}><div class="oc-row">${img?`<img src="${img}" alt="">`:'<span style="width:40px"></span>'}<div class="nm">${nome}<small>${sub}</small></div>${btns}</div><div class="oc-edit" hidden></div></div>`;
-     list.innerHTML=`<p class="fmsg" style="margin-top:0"><b style="color:var(--gold)">Editar</b> corrige o texto de qualquer personagem ou clã (inclusive os oficiais). <b style="color:var(--gold)">Remover</b> tira do site na hora, sem apagar nada: vai para a lista de removidos e pode ser restaurado.</p>
+     list.innerHTML=`<p class="fmsg" style="margin-top:0"><b style="color:var(--gold)">Editar</b> corrige o texto de qualquer personagem ou clã (inclusive os oficiais). <b style="color:var(--gold)">Remover</b> tira do site na hora, sem apagar nada: vai para a lista de removidos, onde dá para <b style="color:var(--gold)">Restaurar</b> ou <b style="color:var(--blood)">Apagar de vez</b>.</p>
       <label class="search" style="display:block;margin:12px 0">${svg('search')}<input id="oc-q" placeholder="Buscar no site..." aria-label="Buscar"></label>
       <div class="kicker" style="margin:14px 0 8px">No site agora</div><div class="oc-list" id="oc-vivos"></div>
-      <div class="kicker" style="margin:22px 0 8px">Removidos (${oc.length})</div><div class="oc-list">${oc.length?oc.map(o=>row(esc(o.nome||o.item_id),'',`${o.tipo==='ordens'?'Clã':'Personagem'} · removido por ${esc(o.ocultado_por||'admin')}`,`<button class="tbtn" data-rest="${o.tipo}:${esc(o.item_id)}">Restaurar</button>`)).join(''):'<p class="fmsg" style="margin:0">Nenhum.</p>'}</div>
+      <div class="kicker" style="margin:22px 0 8px">Removidos (${oc.length})</div><div class="oc-list">${oc.length?oc.map(o=>row(esc(o.nome||o.item_id),'',`${o.tipo==='ordens'?'Clã':'Personagem'} · removido por ${esc(o.ocultado_por||'admin')}`,`<button class="tbtn" data-rest="${o.tipo}:${esc(o.item_id)}">Restaurar</button><button class="tbtn" style="color:var(--blood)" data-perm="${o.tipo}:${esc(o.item_id)}">Apagar de vez</button>`)).join(''):'<p class="fmsg" style="margin:0">Nenhum.</p>'}</div>
       <p class="fmsg" data-ocmsg></p>`;
      const draw=()=>{const t=list.querySelector('#oc-q').value.trim().toLowerCase();
        list.querySelector('#oc-vivos').innerHTML=vivos.filter(({it})=>!t||String(it.n).toLowerCase().includes(t)).map(({cat,it})=>{const key=cat+':'+it.id,com=it.id.startsWith('u-');
@@ -1114,6 +1119,22 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
      list.onclick=async ev=>{
        const ed=ev.target.closest('[data-edit]');
        if(ed){const [cat,id]=ed.dataset.edit.split(/:(.*)/s);return abrirEditor(ed,cat,id);}
+       const pm=ev.target.closest('[data-perm]');
+       if(pm){const [cat,id]=pm.dataset.perm.split(/:(.*)/s);
+         if(pm.dataset.conf!=='1'){pm.dataset.conf='1';pm.textContent='Confirmar: apagar de vez (não dá para desfazer)';return;}
+         pm.disabled=true;
+         try{
+           const ek=EDIT[cat+':'+id];
+           if(ek){await apagarArquivos('publico',[ek.dados&&ek.dados._foto,ek.dados&&ek.dados._audio].filter(Boolean)).catch(()=>{});
+             await api(`/rest/v1/edicoes?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});}
+           if(id.startsWith('u-')){const rows=await api(`/rest/v1/envios?select=foto,audio&id=eq.${id.slice(2)}`);
+             if(rows[0])await apagarArquivos('publico',[rows[0].foto,rows[0].audio].filter(Boolean)).catch(()=>{});
+             await api(`/rest/v1/envios?id=eq.${id.slice(2)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+             await api(`/rest/v1/ocultos?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});}
+           else await api(`/rest/v1/ocultos?tipo=eq.${cat}&item_id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({permanente:true})});
+           say('Apagado de vez.','ok');noSite(list);
+         }catch(e){pm.disabled=false;say(e.message,'err');}
+         return;}
        const r=ev.target.closest('[data-rem]'),x=ev.target.closest('[data-rest]');if(!r&&!x)return;
        const [cat,id]=(r||x).dataset[r?'rem':'rest'].split(/:(.*)/s);
        try{
@@ -1134,7 +1155,7 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
  async function acao(act,e,el){
    const m=el.querySelector('[data-msg]'),say=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
    const d=readFields(el.querySelector('.fgrid'));
-   if(act!=='recusar'&&act!=='apagar'&&act!=='tirar'){const falta=FORM[e.tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);if(falta.length)return say('Preencha: '+falta.join(', ')+'.','err');}
+   if(!['recusar','apagar','tirar','arquivar'].includes(act)){const falta=FORM[e.tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);if(falta.length)return say('Preencha: '+falta.join(', ')+'.','err');}
    if(act==='apagar'&&!confirmar(el,'Apagar este envio de vez? Não dá para desfazer.'))return;
    if(act==='tirar'&&!confirmar(el,'Tirar esta história do site? Ela vai para Recusados e os arquivos públicos são apagados.'))return;
    el.querySelectorAll('button').forEach(b=>b.disabled=true);say('Salvando...');
@@ -1149,9 +1170,10 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
        await apagarArquivos('envios',arquivos(e)).catch(()=>{});
      }else if(act==='recusar'){await apagarArquivos('envios',arquivos(e)).catch(()=>{});await patch(Object.assign({status:'recusado',dados:d,foto:null,audio:null},marca));}
      else if(act==='salvar'){await patch(Object.assign({dados:d},marca));}
+     else if(act==='arquivar'){await patch({arquivado:true});}
      else if(act==='tirar'){await apagarArquivos('publico',arquivos(e)).catch(()=>{});await patch(Object.assign({status:'recusado',foto:null,audio:null},marca));}
      else if(act==='apagar'){await apagarArquivos('envios',arquivos(e)).catch(()=>{});await api(`/rest/v1/envios?id=eq.${e.id}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});}
-     say({aprovar:'Aprovada! Já está no site (recarregue a página para ver).',recusar:'Recusada.',salvar:'Alterações salvas.',tirar:'Retirada do site.',apagar:'Apagada.'}[act],'ok');
+     say({aprovar:'Aprovada! Já está no site (recarregue a página para ver).',recusar:'Recusada.',salvar:'Alterações salvas.',arquivar:'Tirada da lista. Continua no site (edite ou remova pela aba NO SITE).',tirar:'Retirada do site.',apagar:'Apagada.'}[act],'ok');
      setTimeout(listView,1200);
    }catch(err){say(err.message,'err');el.querySelectorAll('button').forEach(b=>b.disabled=false);}
  }
