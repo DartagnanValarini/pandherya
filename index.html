@@ -338,7 +338,8 @@ footer .flk:not([href]){cursor:default}
    CONFIGURAÇÃO — troque aqui antes de lançar
    ========================================================= */
 const CONFIG={
-  ip:'IP.DO.SERVIDOR:2456',          // endereço real do servidor
+  ip:'IP.DO.SERVIDOR:2456',          // endereço real do servidor (não aparece mais no site)
+  discordUrl:'https://discord.gg/pYbCE9rff', // convite do Discord (Taverna)
   liveUrl:'https://www.twitch.tv',    // canal da live
   patronoUrl:'#',
   flkUrl:'https://www.flkstudios.com.br',                          // site da FLK! STUDIOS (crédito no rodapé)                     // link de pagamento / Discord para os pacotes
@@ -735,9 +736,9 @@ function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
     <p id="t-status" style="color:var(--faint);font-size:11px;margin:8px 0 0">Os recados ficam visíveis para todos os visitantes.</p></div>
   </div>
   <div class="box" style="margin-top:20px"><h4>Entre em Pandherya</h4>
-   <p style="margin:0;color:var(--muted);line-height:1.6;max-width:62ch">Conecte-se ao servidor e venha fazer parte da 8ª Temporada.</p>
-   <div class="copyline"><code id="ip">${CONFIG.ip}</code><button class="tbtn" id="copyip">Copiar IP</button></div>
-   <p style="margin:14px 0 0"><a class="gold-btn" href="#patrono">VER PACOTES DE PATRONO</a></p></div>`);
+   <p style="margin:0;color:var(--muted);line-height:1.6;max-width:62ch">Entre no nosso Discord e venha fazer parte da 8ª Temporada.</p>
+   <div class="copyline"><code id="ip">${CONFIG.discordUrl}</code><button class="tbtn" id="copyip">Copiar link</button></div>
+   <p style="margin:14px 0 0;display:flex;flex-wrap:wrap;gap:10px"><a class="gold-btn" href="${CONFIG.discordUrl}" target="_blank" rel="noopener">ENTRAR NO DISCORD</a><a class="gold-btn" href="#patrono">VER PACOTES DE PATRONO</a></p></div>`);
  s.addEventListener('click',e=>{const a=e.target.closest('[data-open-p]');if(a){e.preventDefault();openDetail('personagens',a.dataset.openP);}});
  const mural=s.querySelector('#mural');
  const st=s.querySelector('#t-status');
