@@ -269,6 +269,12 @@ footer .flk:not([href]){cursor:default}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* Inclua sua história + admin */
 .sub-wrap{max-width:820px;margin:0 auto}
+.adm-wrap{max-width:1180px}
+.adm-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-bottom:18px}
+.adm-bar .seg{margin:0;flex:1 1 560px}
+.adm-bar .seg button{white-space:nowrap;padding:12px 10px}
+.adm-bar .who{color:var(--muted);font-size:12px;white-space:nowrap}
+@media (max-width:640px){.adm-bar .seg{display:grid;grid-template-columns:1fr 1fr;flex-basis:100%}}
 .seg{display:flex;gap:8px;margin-bottom:18px}
 .seg button{flex:1;padding:12px;border:1px solid var(--line);background:#0a0e1a;color:var(--muted);border-radius:6px;cursor:pointer;letter-spacing:.2em;font-size:11px}
 .seg button.on{border-color:var(--gold-dim);background:var(--gold-bg);color:var(--gold)}
@@ -952,7 +958,7 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
 /* ---- painel dos admins (#admin, fora do menu) ---- */
 /* Login: contas do Supabase Auth. Só e-mails da tabela public.admins conseguem ver e aprovar envios. */
 {
- const s=page('admin','shield','Painel dos Admins','Revise as histórias enviadas pela comunidade.',`<div class="sub-wrap" id="adm"></div>`);
+ const s=page('admin','shield','Painel dos Admins','Revise as histórias enviadas pela comunidade.',`<div class="sub-wrap adm-wrap" id="adm"></div>`);
  const root=s.querySelector('#adm');
  let ses=null;try{ses=JSON.parse(sessionStorage.getItem('pdy-adm')||'null');}catch(e){}
  const save=()=>{try{ses?sessionStorage.setItem('pdy-adm',JSON.stringify(ses)):sessionStorage.removeItem('pdy-adm');}catch(e){}};
@@ -977,9 +983,9 @@ function abrirGuia(){modal.innerHTML=`<div class="mbox guia"><button class="mclo
  async function listView(){
    const ok=await api('/rest/v1/rpc/is_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>false);
    if(!ok){ses=null;save();return loginView('Esta conta não tem acesso de admin.');}
-   root.innerHTML=`<div class="toolbar" style="justify-content:space-between;flex-wrap:wrap">
-     <div class="seg" style="margin:0;flex:1;min-width:280px">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
-     <span style="color:var(--muted);font-size:12px">${esc(ses.email||'')} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
+   root.innerHTML=`<div class="adm-bar">
+     <div class="seg">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
+     <span class="who">${esc(ses.email||'')} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
    root.querySelectorAll('[data-aba]').forEach(b=>b.addEventListener('click',()=>{aba=b.dataset.aba;listView();}));
    root.querySelector('#adm-out').addEventListener('click',e=>{e.preventDefault();ses=null;save();loginView();});
    const list=root.querySelector('#adm-list');
