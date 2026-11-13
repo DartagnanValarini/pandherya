@@ -570,7 +570,7 @@ const CONTA=(()=>{
     location.href=`${CONFIG.dbUrl}/auth/v1/authorize?provider=discord&redirect_to=${encodeURIComponent(location.origin+location.pathname)}`;
   }
   async function sair(){const hd=await H().catch(()=>null);if(hd)fetch(`${CONFIG.dbUrl}/auth/v1/logout`,{method:'POST',headers:hd}).catch(()=>{});ses=null;eu=null;save();emit();}
-  return {get logado(){return !!ses;},get eu(){return eu;},get erro(){const e=erro;erro=null;return e;},entrar,sair,rpc,carregar,on:f=>fns.push(f)};
+  return {cabecalho:H,get logado(){return !!ses;},get eu(){return eu;},get erro(){const e=erro;erro=null;return e;},entrar,sair,rpc,carregar,on:f=>fns.push(f)};
 })();
 const DISCORD_SVG='<svg viewBox="0 0 24 24"><path d="M8.5 7.5A13 13 0 0 1 12 7a13 13 0 0 1 3.5.5M7 16.5a13 13 0 0 0 10 0"/><path d="M15.5 7.5l.8-1.8c1.6.3 3 .9 4.2 1.8 1.4 3.3 1.8 6.6 1.4 9.8a15 15 0 0 1-4.4 2.2l-1-1.8M8.5 7.5l-.8-1.8c-1.6.3-3 .9-4.2 1.8-1.4 3.3-1.8 6.6-1.4 9.8a15 15 0 0 0 4.4 2.2l1-1.8"/><circle cx="9" cy="13" r="1.2"/><circle cx="15" cy="13" r="1.2"/></svg>';
 
@@ -1480,30 +1480,30 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
 }
 
 /* ---- painel dos admins (#admin, fora do menu) ---- */
-/* Login: contas do Supabase Auth. Só e-mails da tabela public.admins conseguem ver e aprovar envios. */
+/* Login: conta do Discord (CONTA). Só quem está em public.site_admins vê e aprova envios; o dono do site aprova novos admins. */
 {
  const s=page('admin','shield','Painel dos Admins','Revise as histórias enviadas pela comunidade.',`<div class="sub-wrap adm-wrap" id="adm"></div>`);
  const root=s.querySelector('#adm');
- let ses=null;try{ses=JSON.parse(sessionStorage.getItem('pdy-adm')||'null');}catch(e){}
- const save=()=>{try{ses?sessionStorage.setItem('pdy-adm',JSON.stringify(ses)):sessionStorage.removeItem('pdy-adm');}catch(e){}};
- async function auth(body,grant){const r=await fetch(`${CONFIG.dbUrl}/auth/v1/token?grant_type=${grant}`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:JSON.stringify(body)});
-   const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(grant==='password'?'E-mail ou senha incorretos.':'Sessão expirada. Entre de novo.');
-   ses={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||(Date.now()/1000+j.expires_in),email:j.user&&j.user.email};save();}
- async function H(extra={}){if(!ses)throw new Error('Entre de novo.');
-   if(Date.now()/1000>ses.expires_at-60){try{await auth({refresh_token:ses.refresh_token},'refresh_token');}catch(e){ses=null;save();loginView();throw e;}}
-   return Object.assign({apikey:CONFIG.dbKey,Authorization:'Bearer '+ses.access_token},extra);}
+ /* sessão: a conta do Discord do site (CONTA). ses.email guarda o nome do admin, usado em "publicado por" e "revisado por" */
+ const ses={email:''};let DONO=false;
+ async function H(extra={}){const h=await CONTA.cabecalho();if(!h)throw new Error('Entre com o Discord de novo.');return Object.assign(h,extra);}
  async function api(path,opt={}){const r=await fetch(`${CONFIG.dbUrl}${path}`,Object.assign({},opt,{headers:await H(opt.headers||{})}));
    if(!r.ok){const t=await r.text().catch(()=>'');let m=t;try{const j=JSON.parse(t);m=j.message||j.error||t;}catch(_){}throw new Error(m||('Erro '+r.status));}const t=await r.text();return t?JSON.parse(t):null;}
  async function blobUrl(bucket,path){const r=await fetch(`${CONFIG.dbUrl}/storage/v1/object/${bucket}/${path}`,{headers:await H()});if(!r.ok)return null;return URL.createObjectURL(await r.blob());}
- function loginView(m=''){root.innerHTML=`<div class="box" style="max-width:420px;margin:0 auto"><h4>Entrar</h4>
-   <form id="al" class="fgrid" style="grid-template-columns:1fr">
-    <label class="fld"><span>E-mail</span><input type="email" id="al-e" autocomplete="username" required></label>
-    <label class="fld"><span>Senha</span><input type="password" id="al-s" autocomplete="current-password" required></label>
-    <div><button class="gold-btn" type="submit">ENTRAR</button></div><p class="fmsg err" id="al-m">${m}</p></form></div>`;
-   root.querySelector('#al').addEventListener('submit',async ev=>{ev.preventDefault();const m=root.querySelector('#al-m');m.textContent='Entrando...';m.className='fmsg';
-     try{await auth({email:root.querySelector('#al-e').value.trim(),password:root.querySelector('#al-s').value},'password');await listView();}
-     catch(e){if(/incorretos/.test(e.message)){const f=floki();m.className='fmsg floki';m.innerHTML=`${f[0]?`<em>${f[0]}</em>`:''}<span>${f[1]}</span><small>E-mail ou senha incorretos.</small>`;}
-       else{m.textContent=e.message;m.className='fmsg err';}}});}
+ /* fora do painel: entrar com Discord, ou pedir acesso (o dono do site aprova) */
+ async function loginView(info){
+   if(!CONTA.logado){root.innerHTML=`<div class="box" style="max-width:460px;margin:0 auto"><h4>Entrar</h4><p style="color:var(--muted);line-height:1.6;margin-top:0">O painel dos admins usa a conta do Discord. Entre e, se ainda não for admin, peça acesso.</p><button class="g-discord" id="al-d">${DISCORD_SVG}Entrar com Discord</button></div>`;
+     root.querySelector('#al-d').onclick=CONTA.entrar;return;}
+   let me=info;if(!me){root.innerHTML='<p class="fmsg" style="text-align:center">Conferindo sua conta...</p>';try{me=await api('/rest/v1/rpc/admin_eu',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){root.innerHTML=`<p class="fmsg err" style="text-align:center">${esc(e.message)}</p>`;return;}}
+   if(me&&me.admin)return listView();
+   const pend=me&&me.pedido==='pendente',rec=me&&me.pedido==='recusado';
+   root.innerHTML=`<div class="box" style="max-width:480px;margin:0 auto"><h4>Painel dos Admins</h4>
+    <p style="line-height:1.6;margin-top:0">Você entrou como <b style="color:var(--gold)">${esc((me&&me.nome)||'?')}</b>${me&&me.usuario?` <span style="color:var(--faint)">(@${esc(me.usuario)})</span>`:''}, mas essa conta ainda não é admin.</p>
+    <p style="color:var(--muted);line-height:1.6">${pend?'Seu pedido de acesso está aguardando a aprovação do Dart.':rec?'Seu último pedido foi recusado. Você pode pedir de novo.':'Para usar o painel, peça acesso. O Dart aprova pessoalmente.'}</p>
+    <p style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">${pend?'':'<button class="gold-btn" id="al-p">PEDIR ACESSO DE ADMIN</button>'}<button class="tbtn" id="al-s">Sair</button></p><p class="fmsg" id="al-m"></p></div>`;
+   const pb=root.querySelector('#al-p');if(pb)pb.onclick=async()=>{pb.disabled=true;try{await api('/rest/v1/rpc/admin_pedir',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});loginView();}catch(e){pb.disabled=false;const m=root.querySelector('#al-m');m.textContent=e.message;m.className='fmsg err';}};
+   root.querySelector('#al-s').onclick=()=>CONTA.sair();
+ }
  /* senha errada: Floki responde (uma frase diferente a cada tentativa) */
  const FLOKI=[
   ['Floki inclina a cabeça devagar... e solta uma risadinha','Querendo enganar o rei da mentira? Hehehe... Até os corvos riram dessa senha.'],
@@ -1518,15 +1518,17 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
  const floki=()=>{let i;do{i=Math.floor(Math.random()*FLOKI.length);}while(i===flokiUlt&&FLOKI.length>1);flokiUlt=i;return FLOKI[i];};
  let aba='pendente';try{aba=sessionStorage.getItem('pdy-aba')||'pendente';}catch(e){}
  async function listView(){
+   if(!CONTA.logado)return loginView();
+   const me=await api('/rest/v1/rpc/admin_eu',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>null);
+   if(!me||!me.admin)return loginView(me);
+   ses.email=me.nome||me.usuario||'';DONO=!!me.dono;
    if(!window.__nomesSync){window.__nomesSync=1;const rows=['personagens','ordens'].flatMap(c=>ORIGINAL[c].map(i=>({tipo:c,item_id:i.id,nome:String(i.n),atualizado_em:new Date().toISOString()})));
      api('/rest/v1/nomes_oficiais?on_conflict=tipo,item_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)}).catch(()=>{window.__nomesSync=0;});}
-   const ok=await api('/rest/v1/rpc/is_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>false);
-   if(!ok){ses=null;save();return loginView('Esta conta não tem acesso de admin.');}
    root.innerHTML=`<div class="adm-bar">
      <div class="seg">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE'],['jornal','JORNAL'],['admins','ADMINS']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
      <span class="who">${esc(ses.email||'')} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
    root.querySelectorAll('[data-aba]').forEach(b=>b.addEventListener('click',()=>{aba=b.dataset.aba;try{sessionStorage.setItem('pdy-aba',aba);}catch(e){}listView();}));
-   root.querySelector('#adm-out').addEventListener('click',e=>{e.preventDefault();ses=null;save();loginView();});
+   root.querySelector('#adm-out').addEventListener('click',e=>{e.preventDefault();CONTA.sair();});
    const list=root.querySelector('#adm-list');
    if(aba==='nosite')return noSite(list);
    if(aba==='jornal')return jornalAdm(list);
@@ -1570,29 +1572,24 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
      }
    }catch(err){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(err.message)}</p>`;}
  }
- /* aba ADMINS: quem pode entrar no painel */
+ /* aba ADMINS: contas do Discord com acesso ao painel. Só o dono do site aprova pedidos e remove admins. */
  async function adminsAdm(list){
    list.innerHTML='<p class="fmsg">Carregando...</p>';
-   let ads;try{ads=await api('/rest/v1/rpc/admins_situacao',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}
+   let d;try{d=await api('/rest/v1/rpc/admin_lista',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}
    catch(e){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(e.message)}</p>`;return;}
-   const eu=(ses.email||'').toLowerCase();
-   const sit=a=>!a.tem_conta?'<span style="color:var(--blood)">ainda sem conta no Supabase</span>':!a.confirmado?'<span style="color:var(--blood)">conta não confirmada</span>':a.ultimo_login?'último acesso '+new Date(a.ultimo_login).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'conta criada, nunca entrou';
-   list.innerHTML=`<div class="box"><h4>Incluir admin</h4>
-     <div class="fgrid"><div class="fld full"><span><label for="ad-e">E-mail</label></span><input type="email" id="ad-e" placeholder="nome@gmail.com" maxlength="120"></div></div>
-     <div class="adm-act"><button class="gold-btn" id="ad-add">INCLUIR NA LISTA</button></div><p class="fmsg" id="ad-m"></p>
-     <p class="fmsg" style="margin-top:6px">Depois de incluir o e-mail aqui, a pessoa ainda precisa ter uma conta no Supabase (<b style="color:var(--gold)">Authentication → Users → Add user</b>, com <b style="color:var(--gold)">Auto Confirm User</b> marcado). Sem as duas coisas, o login é negado.</p></div>
-     <div class="kicker" style="margin:22px 0 8px">Admins (${ads.length})</div><div class="oc-list">${ads.map(a=>`<div class="oc-item"><div class="oc-row"><div class="nm">${esc(a.email)}${a.email===eu?' <small style="display:inline;color:var(--gold)">(você)</small>':''}<small>${sit(a)}${a.incluido_por?' · incluído por '+esc(a.incluido_por):''}</small></div>${a.email===eu?'':`<button class="tbtn" style="color:var(--blood)" data-adrm="${esc(a.email)}">Remover</button>`}</div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join('')}</div>`;
-   const m=list.querySelector('#ad-m'),say=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
-   list.querySelector('#ad-add').onclick=async ev=>{const e=list.querySelector('#ad-e').value.trim().toLowerCase();
-     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))return say('Digite um e-mail válido.','err');
-     if(ads.some(a=>a.email===e))return say('Esse e-mail já é admin.','err');
-     ev.target.disabled=true;say('Incluindo...');
-     try{await api('/rest/v1/admins',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({email:e,incluido_por:ses.email})});
-       say('Incluído!','ok');setTimeout(()=>adminsAdm(list),700);}catch(x){ev.target.disabled=false;say(x.message,'err');}};
-   list.querySelectorAll('[data-adrm]').forEach(b=>b.onclick=async()=>{const it=b.closest('.oc-item'),mm=it.querySelector('[data-msg]');
+   const quando=t=>t?new Date(t).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
+   list.innerHTML=(d.dono?`<div class="box"><h4>Pedidos de acesso (${d.pedidos.length})</h4>${d.pedidos.length?`<div class="oc-list">${d.pedidos.map(p=>`<div class="oc-item"><div class="oc-row"><div class="nm">${esc(p.nome||'?')}<small>@${esc(p.usuario||'?')} · pediu em ${quando(p.criado_em)}</small></div><button class="tbtn" style="color:var(--gold)" data-pa="${p.user_id}" data-ok="1">Aprovar</button><button class="tbtn" style="color:var(--blood)" data-pa="${p.user_id}">Recusar</button></div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join('')}</div>`
+       :'<p class="fmsg" style="margin:0">Nenhum pedido. Quem entra com o Discord em pandherya.com.br/#admin pode pedir acesso, e o pedido aparece aqui.</p>'}<p class="fmsg" style="margin-top:10px">Confira pelo @ do Discord antes de aprovar: o nome de exibição qualquer um pode trocar, o @ é único.</p></div>`
+     :'<p class="fmsg" style="margin:0 0 6px">Só o dono do site aprova pedidos e remove admins.</p>')+
+     `<div class="kicker" style="margin:22px 0 8px">Admins (${d.admins.length})</div><div class="oc-list">${d.admins.map(a=>`<div class="oc-item"><div class="oc-row"><div class="nm">${esc(a.nome||'?')}${a.voce?' <small style="display:inline;color:var(--gold)">(você)</small>':''}<small>@${esc(a.usuario||'?')}${a.dono?' · dono do site':''}${a.incluido_por&&!a.dono?' · aprovado por '+esc(a.incluido_por):''}${a.ultimo_login?' · último acesso '+quando(a.ultimo_login):''}</small></div>${d.dono&&!a.voce?`<button class="tbtn" style="color:var(--blood)" data-adrm="${esc(a.discord_id)}">Remover</button>`:''}</div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join('')}</div>`;
+   const rpc=(fn,b)=>api('/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+   list.querySelectorAll('[data-pa]').forEach(b=>b.onclick=async()=>{const mm=b.closest('.oc-item').querySelector('[data-msg]');b.disabled=true;
+     try{await rpc('admin_decidir',{p_user:b.dataset.pa,p_aprovar:!!b.dataset.ok});mm.textContent=b.dataset.ok?'Aprovado. Já pode usar o painel.':'Recusado.';mm.className='fmsg ok';setTimeout(()=>adminsAdm(list),800);}
+     catch(x){b.disabled=false;mm.textContent=x.message;mm.className='fmsg err';}});
+   list.querySelectorAll('[data-adrm]').forEach(b=>b.onclick=async()=>{const mm=b.closest('.oc-item').querySelector('[data-msg]');
      if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar remoção';return;}
-     b.disabled=true;try{await api(`/rest/v1/admins?email=eq.${encodeURIComponent(b.dataset.adrm)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
-       mm.textContent='Removido.';mm.className='fmsg ok';setTimeout(()=>adminsAdm(list),700);}catch(x){b.disabled=false;mm.textContent=x.message;mm.className='fmsg err';}});
+     b.disabled=true;try{await rpc('admin_remover',{p_discord:b.dataset.adrm});mm.textContent='Removido.';mm.className='fmsg ok';setTimeout(()=>adminsAdm(list),700);}
+     catch(x){b.disabled=false;mm.textContent=x.message;mm.className='fmsg err';}});
  }
  /* aba JORNAL: publicar, editar e apagar edições do Pandherya News */
  async function jornalAdm(list){
@@ -1790,7 +1787,8 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
  }
  function confirmar(el,t){const m=el.querySelector('[data-msg]');if(el.dataset.conf===t){delete el.dataset.conf;return true;}
    el.dataset.conf=t;m.textContent=t+' Clique de novo para confirmar.';m.className='fmsg err';return false;}
- if(ses)listView().catch(()=>loginView());else loginView();
+ CONTA.on(()=>{if(location.hash==='#admin')loginView();});
+ window.__admAbrir=()=>loginView();
 }
 
 /* ---- legal ---- */
@@ -1823,6 +1821,7 @@ function route(){
   nav.querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.dataset.r===r&&!a.classList.contains('live')&&!a.classList.contains('wiki')));
   if(r==='mapa')drawWorld();
   if(r==='guilda')GUILDA.abrir();
+  if(r==='admin'&&window.__admAbrir)window.__admAbrir();
   views[r].scrollTop=0;closeModal();
 }
 {const a=document.getElementById('flk');if(CONFIG.flkUrl)a.href=CONFIG.flkUrl;}
