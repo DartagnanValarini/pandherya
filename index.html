@@ -1049,15 +1049,18 @@ const GUILDA=(()=>{
  const TIERS=[
   {k:'E',n:'Estanho',min:0,c:'#a3a3a3'},{k:'D',n:'Cobre',min:26,c:'#c27a52'},{k:'C',n:'Bronze',min:50,c:'#d0a050'},
   {k:'B',n:'Ferro',min:100,c:'#8fa6b8'},{k:'A',n:'Prata',min:300,c:'#d6d6d6',vagas:7},
-  {k:'S',n:'Metal Negro',min:500,c:'#5fb46a',vagas:5,conselho:1},{k:'SS',n:'Flametal',min:600,c:'#5aa0e6',vagas:3,conselho:1},
-  {k:'SSS',n:'Ouro-Sangue',min:700,c:'#e8783a',vagas:1,conselho:1},{k:'SSS+',n:'Relíquia do Lox',c:'#a98bff',vagas:1,conselho:1}];
+  {k:'S',n:'Metal Negro',min:500,c:'#5fb46a',vagas:5},{k:'SS',n:'Flametal',min:600,c:'#5aa0e6',vagas:3},
+  {k:'SSS',n:'Ouro-Sangue',min:700,c:'#e8783a',vagas:1},{k:'SSS+',n:'Relíquia do Lox',c:'#a98bff',vagas:1,conselho:1}];
+ /* contratos em andamento ao mesmo tempo, por classe */
+ const LIMITE={E:1,D:1,C:2,B:2,A:3,S:3,SS:4,SSS:4,'SSS+':4};
+ const ORD=k=>TIERS.findIndex(t=>t.k===k);
  const T=k=>TIERS.find(t=>t.k===k)||TIERS[0];
  const EMB=k=>`assets/guilda/r_${k==='SSS+'?'SSSp':k}.webp`;
  const VAL={E:1,D:2,C:3,B:4,A:5,S:6,SS:7};
  const BIOMAS=['Prado','Floresta Negra','Pântano','Montanha','Planície','Mistlands','Ashlands','Deep North','Oceano'];
  const TIPOS=['Coleta','Caça','Extermínio','Exploração','Escolta','Defesa','Investigação','Especial'];
  const ST={aberto:'Aberto',andamento:'Em andamento',honrada:'Honrada',fracassada:'Fracassada'};
- const S={tab:'mural',filtro:'aberto',bioma:'',tier:'',q:'',av:[],cs:[],links:[],ok:false};
+ const S={tab:'mural',filtro:'aberto',bioma:'',rank:'',tier:'',q:'',av:[],cs:[],links:[],ok:false};
 
  const s=page('guilda','crown','Guilda dos Aventureiros','Os contratos do Lox Bêbado e o Quadro de Honra dos aventureiros.',`
   <div class="g-top"><img class="g-crest" src="assets/guilda/guilda.webp" alt="Emblema da Guilda dos Aventureiros do Lox Bêbado">
@@ -1136,9 +1139,10 @@ const GUILDA=(()=>{
   const ch=[['aberto','ABERTOS'],['vagas','COM VAGAS'],['andamento','EM ANDAMENTO'],['encerrado','ENCERRADOS']];if(meuId())ch.unshift(['meus','MEUS CONTRATOS']);
   if(S.filtro==='meus'&&!meuId())S.filtro='aberto';
   $('#g-filtros').innerHTML=ch.map(([k,l])=>`<button class="g-chip${S.filtro===k?' on':''}" data-f="${k}">${l}<span class="n">${n[k]}</span></button>`).join('')+
-   `<span class="g-sp"></span><select class="g-sel" id="g-bioma" aria-label="Filtrar por bioma"><option value="">Todos os biomas</option>${BIOMAS.map(b=>`<option${S.bioma===b?' selected':''}>${b}</option>`).join('')}</select>`;
+   `<span class="g-sp"></span><select class="g-sel" id="g-rankf" aria-label="Filtrar por rank"><option value="">Todos os ranks</option>${Object.keys(VAL).map(k=>`<option value="${k}"${S.rank===k?' selected':''}>Rank ${k} · ${T(k).n}</option>`).join('')}</select><select class="g-sel" id="g-bioma" aria-label="Filtrar por bioma"><option value="">Todos os biomas</option>${BIOMAS.map(b=>`<option${S.bioma===b?' selected':''}>${b}</option>`).join('')}</select>`;
   $('#g-filtros').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{S.filtro=b.dataset.f;drawFiltros();drawBoard();});
   $('#g-bioma').onchange=e=>{S.bioma=e.target.value;drawBoard();};
+  $('#g-rankf').onchange=e=>{S.rank=e.target.value;drawBoard();};
  }
  function cardHTML(c,i){
   const st=stOf(c),t=T(c.rank),tot=c.items.reduce((a,x)=>a+x.qtd,0);
@@ -1153,10 +1157,10 @@ const GUILDA=(()=>{
    <div class="g-ft"><span class="rw">${esc(c.recompensa||'Recompensa a combinar')}</span><span class="pts">+${pts(c)} pts</span></div></button>`;
  }
  function drawBoard(){
-  const list=S.cs.filter(c=>{const st=stOf(c);if(S.bioma&&c.bioma!==S.bioma)return false;
+  const list=S.cs.filter(c=>{const st=stOf(c);if(S.bioma&&c.bioma!==S.bioma)return false;if(S.rank&&c.rank!==S.rank)return false;
    if(S.filtro==='meus')return c.people.includes(meuId());if(S.filtro==='vagas')return temVaga(c);if(S.filtro==='encerrado')return c.status!=='aberto';return st===S.filtro;});
   const b=$('#g-board');
-  b.innerHTML=list.length?list.map(cardHTML).join(''):`<div class="empty"><h4>Mural vazio</h4><p>Nenhum contrato aqui${S.bioma?' nesse bioma':''} por enquanto.</p></div>`;
+  b.innerHTML=list.length?list.map(cardHTML).join(''):`<div class="empty"><h4>Mural vazio</h4><p>Nenhum contrato aqui${S.bioma||S.rank?' nesse filtro':''} por enquanto.</p></div>`;
   b.querySelectorAll('[data-c]').forEach(el=>el.onclick=()=>abrirContrato(+el.dataset.c));
  }
 
@@ -1165,13 +1169,16 @@ const GUILDA=(()=>{
   const c=S.cs.find(x=>x.id===id);if(!c)return;
   const st=stOf(c),t=T(c.rank),rt=T(c.classe_rec),me=meuId(),dentro=me&&c.people.includes(me),aberto=c.status==='aberto',cheio=c.people.length>=c.vagas;
   const minha=me&&AV(me),abaixo=minha&&TIERS.indexOf(T(minha.classe))<TIERS.indexOf(rt);
+  const acima=minha&&ORD(c.rank)>ORD(minha.classe),lim=minha?LIMITE[minha.classe]:0,ativos=me?S.cs.filter(x=>x.status==='aberto'&&x.people.includes(me)).length:0,noLimite=minha&&ativos>=lim,pen=Math.floor(pts(c)/2);
   const resta=c.items.map(x=>Math.max(0,x.qtd-soma(c,x.id,'confirmada')-soma(c,x.id,'pendente')));
   const faltam=c.items.some(x=>soma(c,x.id,'confirmada')<x.qtd);
   let acts='';
   if(aberto&&!CONTA.logado)acts=`<button class="g-pbtn main" id="gc-login">Entrar com Discord para aceitar</button>`;
   else if(aberto&&!me)acts=`<div class="g-note" style="margin:0">${eu()&&eu().vinculo&&eu().vinculo.status==='pendente'?`Seu vínculo com ${esc(eu().vinculo.nome)} ainda está aguardando o Forseti. Depois disso você já pode aceitar contratos.`:'Para aceitar contratos, escolha antes o seu personagem. <a href="#" id="gc-vinc" style="color:#3b2a17;font-weight:600">Escolher agora</a>'}</div>`;
+  else if(aberto&&!dentro&&acima)acts=`<div class="g-note" style="margin:0">Esse contrato é rank ${t.k}. Você é ${T(minha.classe).n} (${minha.classe}) e só pode pegar contratos do seu rank para baixo.</div>`;
+  else if(aberto&&!dentro&&noLimite)acts=`<div class="g-note" style="margin:0">Você já está em ${ativos} contrato${ativos>1?'s':''}, o limite da classe ${T(minha.classe).n}. Termine ou desista de um para pegar outro.</div>`;
   else if(aberto&&!dentro)acts=`<button class="g-pbtn main" id="gc-aceitar"${cheio?' disabled':''}>${c.people.length?'Entrar no contrato':'Aceitar e liderar a missão'}</button>${cheio?'<span style="font-size:13px">Todas as vagas preenchidas.</span>':''}${abaixo?`<div class="g-note" style="flex-basis:100%;margin:0">Classe recomendada: ${rt.n}. Você é ${T(minha.classe).n}. Pode aceitar, mas vai por sua conta.</div>`:''}`;
-  else if(aberto&&dentro)acts=`${c.items.length?'<button class="g-pbtn main" id="gc-entregar">Registrar entrega</button>':''}<button class="g-pbtn red" id="gc-desistir">Desistir do contrato</button>`;
+  else if(aberto&&dentro)acts=`${c.items.length?'<button class="g-pbtn main" id="gc-entregar">Registrar entrega</button>':''}<button class="g-pbtn red" id="gc-desistir">${arm==='desistir'?`Confirmar: desistir e perder ${pen} pontos`:'Desistir do contrato'}</button>${arm==='desistir'?`<div class="g-note" style="flex-basis:100%;margin:0">Quem desiste perde metade dos pontos que o contrato daria: ${pen} de ${pts(c)}.</div>`:''}`;
   let mest='';
   if(aberto&&mestre())mest=`<div class="g-h">Mestre da Guilda</div><div class="g-mact" style="margin-top:0">
     <button class="g-pbtn green" id="gc-honrar">${arm==='honrada'?'Confirmar: honrar mesmo com itens faltando':'Encerrar como Honrada'}</button>
@@ -1193,7 +1200,7 @@ const GUILDA=(()=>{
   on('#gc-login',CONTA.entrar);
   on('#gc-vinc',ev=>{ev.preventDefault();abrirVinculo();});
   on('#gc-aceitar',()=>acao('guilda_aceitar',{p_contrato:id},()=>c.people.length?'Você entrou no contrato.':'Contrato aceito. Você é o líder da missão.',reabrir));
-  on('#gc-desistir',()=>{const lider=c.people[0]===me;acao('guilda_desistir',{p_contrato:id},()=>{const n=S.cs.find(x=>x.id===id);return lider&&n&&n.people.length?`Você saiu. ${nomeAv(n.people[0])} agora é o líder da missão.`:'Você saiu do contrato.';},reabrir);});
+  on('#gc-desistir',()=>{if(arm!=='desistir'){abrirContrato(id,'desistir');return;}const lider=c.people[0]===me;acao('guilda_desistir',{p_contrato:id},r=>{const n=S.cs.find(x=>x.id===id),p=r&&r.penalidade?` Você perdeu ${r.penalidade} pontos.`:'';return (lider&&n&&n.people.length?`Você saiu. ${nomeAv(n.people[0])} agora é o líder da missão.`:'Você saiu do contrato.')+p;},reabrir);});
   on('#gc-entregar',()=>{const itens=[...modal.querySelectorAll('[data-it]')].map(i=>({item:+i.dataset.it,qtd:+i.value||0})).filter(x=>x.qtd>0);
     if(!itens.length){toast('Preencha a quantidade de pelo menos um item.');return;}acao('guilda_entregar',{p_contrato:id,p_itens:itens},'Entrega registrada. Agora é com o Forseti.',reabrir);});
   on('#gc-honrar',()=>{if(faltam&&arm!=='honrada'){abrirContrato(id,'honrada');return;}
@@ -1202,7 +1209,7 @@ const GUILDA=(()=>{
   on('#gc-excluir',()=>{if(arm!=='excluir'){abrirContrato(id,'excluir');return;}acao('guilda_excluir',{p_id:id},'Contrato excluído.',()=>closeModal());});
   on('#gc-editar',()=>abrirForm(c));
   modal.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>acao('guilda_revisar_entrega',{p_id:+b.dataset.e,p_confirmar:!!b.dataset.ok},b.dataset.ok?'Entrega confirmada.':'Entrega recusada.',reabrir));
-  const f=modal.querySelector(arm?'#gc-'+{honrada:'honrar',fracassada:'falhar',excluir:'excluir'}[arm]:'#mclose');if(f)f.focus();
+  const f=modal.querySelector(arm?'#gc-'+{honrada:'honrar',fracassada:'falhar',excluir:'excluir',desistir:'desistir'}[arm]:'#mclose');if(f)f.focus();
  }
 
  /* ---------- publicar / editar contrato (Mestre) ---------- */
@@ -1269,15 +1276,16 @@ const GUILDA=(()=>{
   $('#g-founder').innerHTML=f?`<img src="${EMB(f.classe)}" alt=""><div><h4>${esc(f.nome)}, Mestre da Guilda</h4><p>${T(f.classe).n} · fundou a Guilda dos Aventureiros do Lox Bêbado</p></div>`:'';
   $('#g-founder').hidden=!f;
   const occ=k=>S.av.filter(a=>a.classe===k).length;
-  $('#g-tiers').innerHTML=TIERS.map(t=>`<button class="g-tier${S.tier===t.k?' on':''}" data-t="${t.k}"><img src="${EMB(t.k)}" alt=""><b style="color:${t.c}">${t.n}</b><small>${t.k} · ${t.k==='SSS+'?'título único':t.conselho?`${t.min}+ missões e indicação`:`${t.min}+ missões`}</small><i>${t.vagas?`${occ(t.k)}/${t.vagas} vagas`:`${occ(t.k)} aventureiro${occ(t.k)===1?'':'s'}`}</i></button>`).join('');
+  $('#g-tiers').innerHTML=TIERS.map(t=>`<button class="g-tier${S.tier===t.k?' on':''}" data-t="${t.k}"><img src="${EMB(t.k)}" alt=""><b style="color:${t.c}">${t.n}</b><small>${t.k} · ${t.k==='SSS+'?'título único':`${t.min}+ missões`} · ${LIMITE[t.k]} contrato${LIMITE[t.k]>1?'s':''}</small><i>${t.vagas?`${occ(t.k)}/${t.vagas} vagas`:`${occ(t.k)} aventureiro${occ(t.k)===1?'':'s'}`}</i></button>`).join('');
   $('#g-tiers').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{S.tier=S.tier===b.dataset.t?'':b.dataset.t;drawRanking();});
   const all=S.av.filter(a=>!a.fora_ranking).sort((a,b)=>total(b)-total(a)||b.missoes-a.missoes||a.nome.localeCompare(b.nome,'pt'));
   const q=S.q.toLowerCase();
   const rows=all.map((a,i)=>({a,pos:i+1})).filter(({a})=>(!S.tier||a.classe===S.tier)&&a.nome.toLowerCase().includes(q));
   $('#g-rc').textContent=`${rows.length} de ${all.length} aventureiros`;
   $('#g-rank').innerHTML=rows.map(({a,pos})=>{const t=T(a.classe),nx=TIERS[TIERS.indexOf(t)+1];let bar='',lab='';
-   if(nx&&!nx.conselho){bar=`<div class="bar"><i style="width:${Math.max(3,Math.min(100,(a.missoes-t.min)/(nx.min-t.min)*100))}%;background:${nx.c}"></i></div>`;lab=`Faltam ${Math.max(0,nx.min-a.missoes)} missões para ${nx.n}`;}
-   else if(nx&&nx.min){bar=`<div class="bar"><i style="width:${Math.min(100,a.missoes/nx.min*100)}%;background:${nx.c}"></i></div>`;lab=a.missoes>=nx.min?`Elegível a ${nx.n}: aguarda o Conselho`:`Faltam ${nx.min-a.missoes} missões para concorrer a ${nx.n}`;}
+   if(nx&&!nx.conselho){bar=`<div class="bar"><i style="width:${Math.max(3,Math.min(100,(a.missoes-t.min)/(nx.min-t.min)*100))}%;background:${nx.c}"></i></div>`;
+     lab=a.missoes<nx.min?`Faltam ${nx.min-a.missoes} missões para ${nx.n}`:`Já pode subir para ${nx.n}: aguardando vaga (${occ(nx.k)}/${nx.vagas})`;}
+   else if(nx)lab=`${nx.n}: só por nomeação do Mestre`;
    else lab='Classe máxima';
    const me=a.id===meuId();
    return `<tr class="${me?'me':''}"><td class="g-pos">${pos}</td><td><div class="g-adv"><img src="${EMB(t.k)}" alt=""><div><b>${esc(a.nome)}</b>${me?'<span class="g-you">VOCÊ</span>':''}<small style="color:${t.c}">${t.k} · ${t.n}</small></div></div></td><td class="num">${a.missoes}</td><td class="num${total(a)<0?' g-neg':''}">${total(a).toLocaleString('pt-BR')}</td><td class="num${a.falhas?' g-neg':''}">${a.falhas||'–'}</td><td class="g-nx">${bar}<small>${lab}</small>${mestre()?` <a href="#" data-cl="${a.id}" style="color:var(--gold);font-size:12px;margin-left:6px">mudar classe</a>`:''}</td></tr>`;}).join('');
@@ -1286,8 +1294,8 @@ const GUILDA=(()=>{
  function abrirClasse(id){
   const a=AV(id);if(!a)return;
   modal.innerHTML=`<div class="mbox gbox" role="dialog" aria-modal="true" aria-label="Mudar classe"><div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">Mestre da Guilda</div><h3>Classe de ${esc(a.nome)}</h3>
-   <p style="color:var(--muted);margin:4px 0 16px;line-height:1.6">Até Prata a promoção é automática pelas missões. De Metal Negro para cima é indicação do Conselho, com vagas limitadas. A mudança entra nas crônicas da guilda.</p>
-   <form class="fgrid" id="gk"><label class="fld"><span>Nova classe</span><select id="gk-c">${TIERS.map(t=>`<option value="${t.k}"${t.k===a.classe?' selected':''}>${t.n} (${t.k})</option>`).join('')}</select></label>
+   <p style="color:var(--muted);margin:4px 0 16px;line-height:1.6">A promoção já é automática ao completar contratos (um rank por vez, respeitando as vagas). Aqui você ajusta à mão: dá para descer, mas só subir um rank de cada vez. A mudança entra nas crônicas da guilda.</p>
+   <form class="fgrid" id="gk"><label class="fld"><span>Nova classe</span><select id="gk-c">${TIERS.filter(t=>ORD(t.k)<=ORD(a.classe)+1).map(t=>`<option value="${t.k}"${t.k===a.classe?' selected':''}>${t.n} (${t.k})</option>`).join('')}</select></label>
    <label class="fld full"><span>Justificativa</span><input type="text" id="gk-j" maxlength="300" placeholder="Ex.: Indicado pelo Conselho após a defesa do Lox"></label>
    <div class="full"><button class="gold-btn" type="submit">SALVAR</button><p class="fmsg err" id="gk-m"></p></div></form></div></div>`;
   modal.hidden=false;
