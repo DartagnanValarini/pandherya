@@ -374,6 +374,7 @@ footer .vis{display:inline-flex;align-items:center;gap:5px}
 .g-tags{display:flex;flex-wrap:wrap;gap:6px}
 .g-tag{font-size:11px;padding:1px 8px;border-radius:4px;background:rgba(43,31,19,.08);border:1px solid rgba(43,31,19,.2);color:#5a4733}
 .g-st{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:4px;color:#fff}
+.g-st.conferencia{background:#3d6b8c}.g-confirm{flex-basis:100%;background:rgba(155,47,27,.07);border:1px solid #c98d7e;border-radius:6px;padding:12px 14px;font-size:14px}.g-confirm p{margin:6px 0 0;line-height:1.5}.g-warn{border-left-color:#9b2f1b!important}.g-prazo{font-size:12.5px;color:#5a4733}.g-prazo.urg{color:#9b2f1b;font-weight:600}
 .g-st.aberto{background:#4d7a3a}.g-st.andamento{background:#a8711b}.g-st.honrada{background:#8a6a1e}.g-st.fracassada{background:#8f3424}
 .g-prog{height:8px;border-radius:4px;background:rgba(43,31,19,.15);overflow:hidden;display:flex}
 .g-prog i{display:block;height:100%;background:#5f8a46}
@@ -1052,14 +1053,14 @@ const GUILDA=(()=>{
   {k:'S',n:'Metal Negro',min:500,c:'#5fb46a',vagas:5},{k:'SS',n:'Flametal',min:600,c:'#5aa0e6',vagas:3},
   {k:'SSS',n:'Ouro-Sangue',min:700,c:'#e8783a',vagas:1},{k:'SSS+',n:'Relíquia do Lox',c:'#a98bff',vagas:1,conselho:1}];
  /* contratos em andamento ao mesmo tempo, por classe */
- const LIMITE={E:1,D:1,C:2,B:2,A:3,S:3,SS:4,SSS:4,'SSS+':4};
+ const LIMITE={E:1,D:1,C:2,B:2,A:3,S:3,SS:4,SSS:5,'SSS+':5};
  const ORD=k=>TIERS.findIndex(t=>t.k===k);
  const T=k=>TIERS.find(t=>t.k===k)||TIERS[0];
  const EMB=k=>`assets/guilda/r_${k==='SSS+'?'SSSp':k}.webp`;
  const VAL={E:1,D:2,C:3,B:4,A:5,S:6,SS:7};
  const BIOMAS=['Prado','Floresta Negra','Pântano','Montanha','Planície','Mistlands','Ashlands','Deep North','Oceano'];
  const TIPOS=['Coleta','Caça','Extermínio','Exploração','Escolta','Defesa','Investigação','Especial'];
- const ST={aberto:'Aberto',andamento:'Em andamento',honrada:'Honrada',fracassada:'Fracassada'};
+ const ST={aberto:'Aberto',andamento:'Em andamento',conferencia:'A conferir',honrada:'Honrada',fracassada:'Fracassada'};
  const S={tab:'mural',filtro:'aberto',bioma:'',rank:'',tier:'',q:'',av:[],cs:[],links:[],ok:false};
 
  const s=page('guilda','crown','Guilda dos Aventureiros','Os contratos do Lox Bêbado e o Quadro de Honra dos aventureiros.',`
@@ -1081,8 +1082,14 @@ const GUILDA=(()=>{
  const total=a=>a.pontos-a.falhas;
  const pts=c=>(VAL[c.rank]||0)*6;
  const soma=(c,itemId,st)=>c.entregas.filter(e=>e.item_id===itemId&&e.status===st).reduce((x,e)=>x+e.qtd,0);
- const stOf=c=>c.status==='aberto'?(c.people.length?'andamento':'aberto'):c.status;
- const temVaga=c=>c.status==='aberto'&&c.people.length<c.vagas;
+ const stOf=c=>c.status==='aberto'?(c.concluida_em?'conferencia':c.people.length?'andamento':'aberto'):c.status;
+ const temVaga=c=>c.status==='aberto'&&!c.concluida_em&&c.people.length<c.vagas;
+ /* prazo: duração definida pelo Mestre, contada a partir do primeiro aceite */
+ const durTxt=h=>{const d=Math.floor(h/24),r=h%24;return [d?`${d} dia${d>1?'s':''}`:'',r?`${r}h`:''].filter(Boolean).join(' e ');};
+ const prazoFim=c=>c.prazo_horas&&c.iniciado_em?new Date(new Date(c.iniciado_em).getTime()+c.prazo_horas*3600e3):null;
+ const falta=f=>{const ms=f-Date.now();if(ms<=0)return 'agora';const h=Math.floor(ms/3600e3),m=Math.floor(ms%3600e3/60e3);return h>=24?`${Math.floor(h/24)}d ${h%24}h`:h?`${h}h ${m}min`:`${m}min`;};
+ const prazoTxt=c=>!c.prazo_horas?'Sem prazo':c.concluida_em?'Parado: marcado como concluído':prazoFim(c)?`Vence em ${falta(prazoFim(c))} (${prazoFim(c).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})})`:`${durTxt(c.prazo_horas)} depois de aceito`;
+ const urgente=c=>{const f=prazoFim(c);return f&&!c.concluida_em&&f-Date.now()<24*3600e3;};
  const quando=d=>new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
  let tt;function toast(m){let el=document.getElementById('g-toast');if(!el){el=document.createElement('div');el.id='g-toast';el.className='g-toast';el.setAttribute('role','status');document.body.appendChild(el);}
    el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,4200);}
@@ -1093,7 +1100,8 @@ const GUILDA=(()=>{
 
  /* ---------- dados ---------- */
  async function load(){
-  const sel='select=id,titulo,tipo,bioma,rank,classe_rec,recompensa,vagas,descricao,contratante,status,criado_em,encerrado_em,guilda_itens(id,nome,qtd,ordem),guilda_participantes(aventureiro_id,entrou_em),guilda_entregas(id,item_id,aventureiro_id,qtd,status,motivo,criado_em)';
+  await fetch(`${CONFIG.dbUrl}/rest/v1/rpc/guilda_vencer`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:'{}'}).catch(()=>{});
+  const sel='select=id,titulo,tipo,bioma,rank,classe_rec,recompensa,vagas,descricao,contratante,status,criado_em,encerrado_em,prazo_horas,iniciado_em,concluida_em,concluida_por,guilda_itens(id,nome,qtd,ordem),guilda_participantes(aventureiro_id,entrou_em),guilda_entregas(id,item_id,aventureiro_id,qtd,status,motivo,criado_em)';
   try{
    const [av,ab,enc]=await Promise.all([
     DB.get('guilda_aventureiros','select=id,nome,classe,missoes,pontos,falhas,fora_ranking&ativo=is.true'),
@@ -1123,11 +1131,13 @@ const GUILDA=(()=>{
  function drawDesk(){
   const el=$('#g-desk');if(!mestre()){el.innerHTML='';return;}
   const pend=[];S.cs.filter(c=>c.status==='aberto').forEach(c=>c.entregas.forEach(e=>{if(e.status==='pendente')pend.push({c,e});}));
+  const conc=S.cs.filter(c=>c.status==='aberto'&&c.concluida_em);
   el.innerHTML=`<div class="g-desk"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h4>Balcão do Mestre</h4><small style="color:var(--faint)">Só o Mestre da Guilda vê isso.</small></div><button class="gold-btn" id="g-novo">PUBLICAR NOVO CONTRATO</button></div>
-   <div class="cols"><div><h5>Entregas para conferir no jogo (${pend.length})</h5>${pend.length?pend.map(({c,e})=>{const it=c.items.find(i=>i.id===e.item_id);
+   <div class="cols">${conc.length?`<div><h5>Marcados como concluídos (${conc.length})</h5>${conc.map(c=>`<div class="g-q"><span><b>${esc(c.titulo)}</b><br><small>Contrato nº ${c.id} · por ${esc(nomeAv(c.concluida_por))} em ${quando(c.concluida_em)}</small></span><span class="g-acts"><button class="tbtn" data-conc="${c.id}">Conferir</button></span></div>`).join('')}</div>`:''}<div><h5>Entregas para conferir no jogo (${pend.length})</h5>${pend.length?pend.map(({c,e})=>{const it=c.items.find(i=>i.id===e.item_id);
      return `<div class="g-q"><span><b>${esc(nomeAv(e.aventureiro_id))}</b> entregou ${e.qtd}× ${esc(it?it.nome:'item')}<br><small>Contrato nº ${c.id} · ${quando(e.criado_em)}</small></span><span class="g-acts"><button class="tbtn g-ok" data-ent="${e.id}" data-ok="1">Confirmar</button><button class="tbtn g-no-btn" data-ent="${e.id}">Recusar</button></span></div>`;}).join(''):'<p style="color:var(--faint);margin:6px 0">Nenhuma entrega aguardando.</p>'}</div>
     <div><h5>Pedidos de vínculo de personagem (${S.links.length})</h5>${S.links.length?S.links.map(l=>`<div class="g-q"><span>Discord <b>${esc(l.discord_nome||'?')}</b> diz ser <b>${esc(l.nome)}</b>${l.novo?' <small style="color:var(--gold)">(novo aventureiro)</small>':''}<br><small>${quando(l.criado_em)}</small></span><span class="g-acts"><button class="tbtn g-ok" data-vin="${l.id}" data-ok="1">Aprovar</button><button class="tbtn g-no-btn" data-vin="${l.id}">Recusar</button></span></div>`).join(''):'<p style="color:var(--faint);margin:6px 0">Nenhum pedido.</p>'}</div></div></div>`;
   el.querySelector('#g-novo').onclick=()=>abrirForm();
+  el.querySelectorAll('[data-conc]').forEach(b=>b.onclick=()=>abrirContrato(+b.dataset.conc));
   el.querySelectorAll('[data-ent]').forEach(b=>b.onclick=()=>acao('guilda_revisar_entrega',{p_id:+b.dataset.ent,p_confirmar:!!b.dataset.ok},b.dataset.ok?'Entrega confirmada.':'Entrega recusada.'));
   el.querySelectorAll('[data-vin]').forEach(b=>b.onclick=()=>acao('guilda_revisar_vinculo',{p_id:b.dataset.vin,p_aprovar:!!b.dataset.ok},b.dataset.ok?'Vínculo aprovado. O aventureiro já pode aceitar contratos.':'Pedido recusado.'));
  }
@@ -1135,7 +1145,7 @@ const GUILDA=(()=>{
  /* ---------- mural ---------- */
  function drawFiltros(){
   const n={aberto:0,vagas:0,andamento:0,encerrado:0,meus:0};
-  S.cs.forEach(c=>{const st=stOf(c);if(st==='aberto')n.aberto++;if(st==='andamento')n.andamento++;if(temVaga(c))n.vagas++;if(c.status!=='aberto')n.encerrado++;if(meuId()&&c.people.includes(meuId()))n.meus++;});
+  S.cs.forEach(c=>{const st=stOf(c);if(st==='aberto')n.aberto++;if(st==='andamento'||st==='conferencia')n.andamento++;if(temVaga(c))n.vagas++;if(c.status!=='aberto')n.encerrado++;if(meuId()&&c.people.includes(meuId()))n.meus++;});
   const ch=[['aberto','ABERTOS'],['vagas','COM VAGAS'],['andamento','EM ANDAMENTO'],['encerrado','ENCERRADOS']];if(meuId())ch.unshift(['meus','MEUS CONTRATOS']);
   if(S.filtro==='meus'&&!meuId())S.filtro='aberto';
   $('#g-filtros').innerHTML=ch.map(([k,l])=>`<button class="g-chip${S.filtro===k?' on':''}" data-f="${k}">${l}<span class="n">${n[k]}</span></button>`).join('')+
@@ -1153,12 +1163,13 @@ const GUILDA=(()=>{
    <div class="g-hd"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="g-no">Contrato nº ${c.id} · Rank ${t.k}</div><h3>${esc(c.titulo)}</h3></div></div>
    <div class="g-tags"><span class="g-st ${st}">${ST[st]}</span>${c.bioma?`<span class="g-tag">${c.bioma}</span>`:''}${c.tipo?`<span class="g-tag">${esc(c.tipo)}</span>`:''}</div>
    ${tot?`<div><div class="g-prog"><i style="width:${cf/tot*100}%"></i><i class="p" style="width:${Math.min(pd,tot-cf)/tot*100}%"></i></div><div class="g-progl"><span>${cf} de ${tot} confirmados</span>${pd?`<span>+${pd} aguardando</span>`:''}</div></div>`:''}
+   ${c.status==='aberto'&&c.prazo_horas?`<div class="g-prazo${urgente(c)?' urg':''}">Prazo: ${prazoTxt(c)}</div>`:''}
    <div class="g-ppl">${c.people.length?`Líder: <b>${esc(nomeAv(c.people[0]))}</b>${c.people.length>1?` + ${c.people.length-1}`:''}`:'Ninguém aceitou ainda'} · ${c.people.length}/${c.vagas} vagas</div>
    <div class="g-ft"><span class="rw">${esc(c.recompensa||'Recompensa a combinar')}</span><span class="pts">+${pts(c)} pts</span></div></button>`;
  }
  function drawBoard(){
   const list=S.cs.filter(c=>{const st=stOf(c);if(S.bioma&&c.bioma!==S.bioma)return false;if(S.rank&&c.rank!==S.rank)return false;
-   if(S.filtro==='meus')return c.people.includes(meuId());if(S.filtro==='vagas')return temVaga(c);if(S.filtro==='encerrado')return c.status!=='aberto';return st===S.filtro;});
+   if(S.filtro==='meus')return c.people.includes(meuId());if(S.filtro==='vagas')return temVaga(c);if(S.filtro==='encerrado')return c.status!=='aberto';if(S.filtro==='andamento')return st==='andamento'||st==='conferencia';return st===S.filtro;});
   const b=$('#g-board');
   b.innerHTML=list.length?list.map(cardHTML).join(''):`<div class="empty"><h4>Mural vazio</h4><p>Nenhum contrato aqui${S.bioma||S.rank?' nesse filtro':''} por enquanto.</p></div>`;
   b.querySelectorAll('[data-c]').forEach(el=>el.onclick=()=>abrirContrato(+el.dataset.c));
@@ -1172,13 +1183,18 @@ const GUILDA=(()=>{
   const acima=minha&&ORD(c.rank)>ORD(minha.classe),lim=minha?LIMITE[minha.classe]:0,ativos=me?S.cs.filter(x=>x.status==='aberto'&&x.people.includes(me)).length:0,noLimite=minha&&ativos>=lim,pen=Math.floor(pts(c)/2);
   const resta=c.items.map(x=>Math.max(0,x.qtd-soma(c,x.id,'confirmada')-soma(c,x.id,'pendente')));
   const faltam=c.items.some(x=>soma(c,x.id,'confirmada')<x.qtd);
+  const conf=!!c.concluida_em,vivo=aberto&&!conf,penP=Math.floor(pts(c)*4/10);
+  const aviso=`<div class="g-note g-warn" style="flex-basis:100%;margin:0"><b>Atenção aos pontos.</b> Se desistir, você perde ${pen} pontos (metade dos ${pts(c)} que o contrato vale).${c.prazo_horas?` Se o prazo de ${durTxt(c.prazo_horas)} vencer sem o contrato ser marcado como concluído, ele falha: cada participante perde ${penP} pontos (40%) e o contrato volta para o mural.`:''}</div>`;
   let acts='';
-  if(aberto&&!CONTA.logado)acts=`<button class="g-pbtn main" id="gc-login">Entrar com Discord para aceitar</button>`;
-  else if(aberto&&!me)acts=`<div class="g-note" style="margin:0">${eu()&&eu().vinculo&&eu().vinculo.status==='pendente'?`Seu vínculo com ${esc(eu().vinculo.nome)} ainda está aguardando o Forseti. Depois disso você já pode aceitar contratos.`:'Para aceitar contratos, escolha antes o seu personagem. <a href="#" id="gc-vinc" style="color:#3b2a17;font-weight:600">Escolher agora</a>'}</div>`;
-  else if(aberto&&!dentro&&acima)acts=`<div class="g-note" style="margin:0">Esse contrato é rank ${t.k}. Você é ${T(minha.classe).n} (${minha.classe}) e só pode pegar contratos do seu rank para baixo.</div>`;
-  else if(aberto&&!dentro&&noLimite)acts=`<div class="g-note" style="margin:0">Você já está em ${ativos} contrato${ativos>1?'s':''}, o limite da classe ${T(minha.classe).n}. Termine ou desista de um para pegar outro.</div>`;
-  else if(aberto&&!dentro)acts=`<button class="g-pbtn main" id="gc-aceitar"${cheio?' disabled':''}>${c.people.length?'Entrar no contrato':'Aceitar e liderar a missão'}</button>${cheio?'<span style="font-size:13px">Todas as vagas preenchidas.</span>':''}${abaixo?`<div class="g-note" style="flex-basis:100%;margin:0">Classe recomendada: ${rt.n}. Você é ${T(minha.classe).n}. Pode aceitar, mas vai por sua conta.</div>`:''}`;
-  else if(aberto&&dentro)acts=`${c.items.length?'<button class="g-pbtn main" id="gc-entregar">Registrar entrega</button>':''}<button class="g-pbtn red" id="gc-desistir">${arm==='desistir'?`Confirmar: desistir e perder ${pen} pontos`:'Desistir do contrato'}</button>${arm==='desistir'?`<div class="g-note" style="flex-basis:100%;margin:0">Quem desiste perde metade dos pontos que o contrato daria: ${pen} de ${pts(c)}.</div>`:''}`;
+  if(aberto&&conf)acts=`<div class="g-note" style="margin:0">Marcado como concluído por <b>${esc(nomeAv(c.concluida_por))}</b> em ${quando(c.concluida_em)}. O prazo parou e agora o Forseti confere e encerra.</div>`;
+  else if(vivo&&!CONTA.logado)acts=`<button class="g-pbtn main" id="gc-login">Entrar com Discord para aceitar</button>`;
+  else if(vivo&&!me)acts=`<div class="g-note" style="margin:0">${eu()&&eu().vinculo&&eu().vinculo.status==='pendente'?`Seu vínculo com ${esc(eu().vinculo.nome)} ainda está aguardando o Forseti. Depois disso você já pode aceitar contratos.`:'Para aceitar contratos, escolha antes o seu personagem. <a href="#" id="gc-vinc" style="color:#3b2a17;font-weight:600">Escolher agora</a>'}</div>`;
+  else if(vivo&&!dentro&&acima)acts=`<div class="g-note" style="margin:0">Esse contrato é rank ${t.k}. Você é ${T(minha.classe).n} (${minha.classe}) e só pode pegar contratos do seu rank para baixo.</div>`;
+  else if(vivo&&!dentro&&noLimite)acts=`<div class="g-note" style="margin:0">Você já está em ${ativos} contrato${ativos>1?'s':''}, o limite da classe ${T(minha.classe).n}. Termine ou desista de um para pegar outro.</div>`;
+  else if(vivo&&!dentro)acts=`<button class="g-pbtn main" id="gc-aceitar"${cheio?' disabled':''}>${c.people.length?'Entrar no contrato':'Aceitar e liderar a missão'}</button>${cheio?'<span style="font-size:13px">Todas as vagas preenchidas.</span>':''}${abaixo?`<div class="g-note" style="flex-basis:100%;margin:0">Classe recomendada: ${rt.n}. Você é ${T(minha.classe).n}. Pode aceitar, mas vai por sua conta.</div>`:''}${cheio?'':aviso}`;
+  else if(vivo&&dentro&&arm==='desistir')acts=`<div class="g-confirm"><b>Desistir do contrato?</b><p>Você vai perder <b>${pen} pontos</b> agora, e isso não pode ser desfeito.</p><div class="g-mact" style="margin-top:10px"><button class="g-pbtn red" id="gc-desistir">Sim, desistir e perder ${pen} pontos</button><button class="g-pbtn" id="gc-cancel">Cancelar</button></div></div>`;
+  else if(vivo&&dentro&&arm==='concluir')acts=`<div class="g-confirm" style="background:rgba(46,90,31,.07);border-color:#8fb57a"><b>Marcar como concluído?</b><p>O prazo para e o contrato vai para a conferência do Forseti. Depois disso ninguém registra mais entregas nem desiste. Se ele conferir e não estiver feito, o contrato pode ser encerrado como fracassado.</p><div class="g-mact" style="margin-top:10px"><button class="g-pbtn main" id="gc-concluir">Sim, está concluído</button><button class="g-pbtn" id="gc-cancel">Cancelar</button></div></div>`;
+  else if(vivo&&dentro)acts=`${c.items.length?'<button class="g-pbtn main" id="gc-entregar">Registrar entrega</button>':''}<button class="g-pbtn green" id="gc-concluir">Marcar como concluído</button><button class="g-pbtn red" id="gc-desistir">Desistir do contrato</button>${aviso}`;
   let mest='';
   if(aberto&&mestre())mest=`<div class="g-h">Mestre da Guilda</div><div class="g-mact" style="margin-top:0">
     <button class="g-pbtn green" id="gc-honrar">${arm==='honrada'?'Confirmar: honrar mesmo com itens faltando':'Encerrar como Honrada'}</button>
@@ -1187,12 +1203,12 @@ const GUILDA=(()=>{
   const log=c.entregas.length?`<ul class="g-log">${c.entregas.map(e=>{const it=c.items.find(i=>i.id===e.item_id);return `<li><span>${quando(e.criado_em)} · <b>${esc(nomeAv(e.aventureiro_id))}</b> entregou ${e.qtd}× ${esc(it?it.nome:'item')}${e.motivo?`<br><small style="color:#6a5640">${esc(e.motivo)}</small>`:''}</span><span style="display:flex;gap:6px;align-items:center"><span class="g-pill ${e.status}">${{pendente:'Aguardando Forseti',confirmada:'Confirmada',recusada:'Recusada'}[e.status]}</span>${mestre()&&e.status==='pendente'?`<button class="g-pbtn green sm" data-e="${e.id}" data-ok="1">Confirmar</button><button class="g-pbtn red sm" data-e="${e.id}">Recusar</button>`:''}</span></li>`;}).join('')}</ul>`:'<p style="color:#6a5640;margin:0">Nenhuma entrega registrada.</p>';
   modal.innerHTML=`<div class="mbox gbox paper" role="dialog" aria-modal="true" aria-label="${esc(c.titulo)}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
    <div class="g-lead"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="kicker">Contrato nº ${c.id} · <span class="g-st ${st}">${ST[st]}</span></div><h3>${esc(c.titulo)}</h3>${c.descricao?`<p class="g-desc">${esc(c.descricao).replace(/\n/g,'<br>')}</p>`:''}</div></div>
-   <dl class="g-dl"><div><dt>Bioma</dt><dd>${c.bioma||'–'}</dd></div><div><dt>Tipo</dt><dd>${esc(c.tipo||'–')}</dd></div><div><dt>Rank do contrato</dt><dd>${t.k} · +${pts(c)} pts</dd></div><div><dt>Classe recomendada</dt><dd>${rt.n}</dd></div><div><dt>Recompensa</dt><dd>${esc(c.recompensa||'A combinar')}</dd></div><div><dt>Contratante</dt><dd>${esc(c.contratante)}</dd></div></dl>
+   <dl class="g-dl"><div><dt>Bioma</dt><dd>${c.bioma||'–'}</dd></div><div><dt>Tipo</dt><dd>${esc(c.tipo||'–')}</dd></div><div><dt>Rank do contrato</dt><dd>${t.k} · +${pts(c)} pts</dd></div><div><dt>Classe recomendada</dt><dd>${rt.n}</dd></div><div><dt>Recompensa</dt><dd>${esc(c.recompensa||'A combinar')}</dd></div><div><dt>Contratante</dt><dd>${esc(c.contratante)}</dd></div>${aberto?`<div><dt>Prazo</dt><dd${urgente(c)?' style="color:#9b2f1b"':''}>${prazoTxt(c)}</dd></div>`:''}</dl>
    <div class="g-h">Aventureiros (${c.people.length}/${c.vagas})</div><p style="margin:0;line-height:1.8">${c.people.length?c.people.map((p,k)=>`${k===0?'<span class="g-lider">Líder da missão</span> ':''}<b>${esc(nomeAv(p))}</b> <small style="color:#6a5640">${T((AV(p)||{}).classe).n}</small>`).join(' · '):'Ninguém aceitou ainda. Quem aceitar primeiro vira o líder da missão.'}</p>
-   ${c.items.length?`<div class="g-h">Itens pedidos</div><table class="g-items"><thead><tr><th>Item</th><th class="num">Pedido</th><th class="num">Confirmado</th><th class="num">Aguardando</th>${dentro&&aberto?'<th class="num">Entregar agora</th>':''}</tr></thead><tbody>${c.items.map((x,i)=>`<tr><td>${esc(x.nome)}</td><td class="num">${x.qtd}</td><td class="num">${soma(c,x.id,'confirmada')}</td><td class="num">${soma(c,x.id,'pendente')||'–'}</td>${dentro&&aberto?`<td class="num"><input type="number" min="0" max="${resta[i]}" value="0" data-it="${x.id}" aria-label="Quantidade de ${esc(x.nome)}"></td>`:''}</tr>`).join('')}</tbody></table>
+   ${c.items.length?`<div class="g-h">Itens pedidos</div><table class="g-items"><thead><tr><th>Item</th><th class="num">Pedido</th><th class="num">Confirmado</th><th class="num">Aguardando</th>${dentro&&vivo?'<th class="num">Entregar agora</th>':''}</tr></thead><tbody>${c.items.map((x,i)=>`<tr><td>${esc(x.nome)}</td><td class="num">${x.qtd}</td><td class="num">${soma(c,x.id,'confirmada')}</td><td class="num">${soma(c,x.id,'pendente')||'–'}</td>${dentro&&vivo?`<td class="num"><input type="number" min="0" max="${resta[i]}" value="0" data-it="${x.id}" aria-label="Quantidade de ${esc(x.nome)}"></td>`:''}</tr>`).join('')}</tbody></table>
     <div class="g-h">Entregas</div>${log}`:''}
    <div class="g-mact">${acts}</div>
-   ${dentro&&aberto?`<div class="g-note">${c.items.length?'Deixe os itens no baú da guilda e registre aqui. A entrega conta depois que o Forseti confere no jogo.':'Esse contrato não tem itens para entregar. Ao terminar, avise o Forseti no jogo ou no Discord para ele encerrar.'}</div>`:''}
+   ${dentro&&vivo?`<div class="g-note">${c.items.length?'Deixe os itens no baú da guilda e registre aqui. A entrega conta depois que o Forseti confere no jogo.':'Esse contrato não tem itens para entregar. Ao terminar, clique em Marcar como concluído antes do prazo vencer.'}</div>`:''}
    ${mest}</div></div>`;
   modal.hidden=false;
   const on=(q,f)=>{const b=modal.querySelector(q);if(b)b.onclick=f;};
@@ -1200,6 +1216,8 @@ const GUILDA=(()=>{
   on('#gc-login',CONTA.entrar);
   on('#gc-vinc',ev=>{ev.preventDefault();abrirVinculo();});
   on('#gc-aceitar',()=>acao('guilda_aceitar',{p_contrato:id},()=>c.people.length?'Você entrou no contrato.':'Contrato aceito. Você é o líder da missão.',reabrir));
+  on('#gc-cancel',()=>abrirContrato(id));
+  on('#gc-concluir',()=>{if(arm!=='concluir'){abrirContrato(id,'concluir');return;}acao('guilda_concluir',{p_contrato:id},'Contrato marcado como concluído. O prazo parou e o Forseti vai conferir.',reabrir);});
   on('#gc-desistir',()=>{if(arm!=='desistir'){abrirContrato(id,'desistir');return;}const lider=c.people[0]===me;acao('guilda_desistir',{p_contrato:id},r=>{const n=S.cs.find(x=>x.id===id),p=r&&r.penalidade?` Você perdeu ${r.penalidade} pontos.`:'';return (lider&&n&&n.people.length?`Você saiu. ${nomeAv(n.people[0])} agora é o líder da missão.`:'Você saiu do contrato.')+p;},reabrir);});
   on('#gc-entregar',()=>{const itens=[...modal.querySelectorAll('[data-it]')].map(i=>({item:+i.dataset.it,qtd:+i.value||0})).filter(x=>x.qtd>0);
     if(!itens.length){toast('Preencha a quantidade de pelo menos um item.');return;}acao('guilda_entregar',{p_contrato:id,p_itens:itens},'Entrega registrada. Agora é com o Forseti.',reabrir);});
@@ -1209,7 +1227,7 @@ const GUILDA=(()=>{
   on('#gc-excluir',()=>{if(arm!=='excluir'){abrirContrato(id,'excluir');return;}acao('guilda_excluir',{p_id:id},'Contrato excluído.',()=>closeModal());});
   on('#gc-editar',()=>abrirForm(c));
   modal.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>acao('guilda_revisar_entrega',{p_id:+b.dataset.e,p_confirmar:!!b.dataset.ok},b.dataset.ok?'Entrega confirmada.':'Entrega recusada.',reabrir));
-  const f=modal.querySelector(arm?'#gc-'+{honrada:'honrar',fracassada:'falhar',excluir:'excluir',desistir:'desistir'}[arm]:'#mclose');if(f)f.focus();
+  const f=modal.querySelector(arm?'#gc-'+{honrada:'honrar',fracassada:'falhar',excluir:'excluir',desistir:'cancel',concluir:'cancel'}[arm]:'#mclose');if(f)f.focus();
  }
 
  /* ---------- publicar / editar contrato (Mestre) ---------- */
@@ -1226,6 +1244,7 @@ const GUILDA=(()=>{
     <label class="fld"><span>Classe recomendada</span><select id="gf-rec">${opt(TIERS.slice(0,8).map(t=>[t.k,`${t.n} (${t.k})`]),c.classe_rec||'E')}</select></label>
     <label class="fld"><span>Recompensa</span><input type="text" id="gf-rw" maxlength="120" value="${esc(c.recompensa||'')}" placeholder="Ex.: 250 gold + comida"></label>
     <label class="fld"><span>Vagas de aventureiros</span><input type="text" inputmode="numeric" id="gf-v" value="${c.vagas||3}"></label>
+    <div class="fld full"><span>Prazo (conta a partir de quando alguém aceita)</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input type="text" inputmode="numeric" id="gf-pd" value="${ed?Math.floor((c.prazo_horas||0)/24):3}" style="width:80px" aria-label="Dias de prazo"> dias <input type="text" inputmode="numeric" id="gf-ph" value="${ed?(c.prazo_horas||0)%24:0}" style="width:80px" aria-label="Horas de prazo"> horas</div><small>Se o prazo vencer sem o contrato ser marcado como concluído, ele falha: cada participante perde 40% dos pontos que ganharia e o contrato volta para o mural. Deixe 0 e 0 para não ter prazo.</small></div>
     ${ed?'':`<div class="fld full"><span>Itens a entregar (opcional)</span><div id="gf-itens"></div><div><button type="button" class="tbtn" id="gf-add">Adicionar item</button></div></div>`}
     <label class="fld full"><span>Descrição</span><textarea id="gf-d" rows="3" maxlength="3000" placeholder="O que o aventureiro precisa saber">${esc(c.descricao||'')}</textarea></label>
     <div class="full"><button class="gold-btn" type="submit">${ed?'SALVAR':'PUBLICAR NO MURAL'}</button><p class="fmsg err" id="gf-m"></p></div>
@@ -1235,7 +1254,7 @@ const GUILDA=(()=>{
   const add=()=>{const d=document.createElement('div');d.className='g-irow';d.innerHTML='<input type="text" maxlength="80" placeholder="Item" aria-label="Nome do item"><input type="number" min="1" placeholder="Qtd." aria-label="Quantidade">';box.appendChild(d);};
   if(box){add();modal.querySelector('#gf-add').onclick=add;}
   modal.querySelector('#gf').onsubmit=async ev=>{ev.preventDefault();const v=q=>modal.querySelector(q).value.trim();
-   const p={titulo:v('#gf-t'),tipo:v('#gf-tipo'),bioma:v('#gf-b'),rank:v('#gf-r'),classe_rec:v('#gf-rec'),recompensa:v('#gf-rw'),vagas:Math.max(1,Math.min(30,parseInt(v('#gf-v'))||3)),descricao:v('#gf-d')};
+   const p={titulo:v('#gf-t'),tipo:v('#gf-tipo'),bioma:v('#gf-b'),rank:v('#gf-r'),classe_rec:v('#gf-rec'),recompensa:v('#gf-rw'),vagas:Math.max(1,Math.min(30,parseInt(v('#gf-v'))||3)),descricao:v('#gf-d'),prazo_horas:Math.min(2160,Math.max(0,(parseInt(v('#gf-pd'))||0)*24+(parseInt(v('#gf-ph'))||0)))};
    if(box)p.itens=[...box.children].map(r=>({nome:r.children[0].value.trim(),qtd:+r.children[1].value||0})).filter(x=>x.nome&&x.qtd>0);
    const btn=ev.submitter||modal.querySelector('#gf button[type=submit]');btn.disabled=true;
    try{const r=ed?await CONTA.rpc('guilda_editar',{p_id:c.id,p}):await CONTA.rpc('guilda_publicar',{p});
