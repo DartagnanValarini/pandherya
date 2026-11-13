@@ -918,47 +918,68 @@ views.mapa.querySelectorAll('.pin').forEach(el=>{
 });
 function drawWorld(){}
 
-/* ---- quem disse? ---- */
-{
+/* ---- quem disse? ----
+   Uma partida por conta do Discord. Cada resposta é gravada na hora no Supabase (quiz_jogadas),
+   então recarregar a página continua a partida em vez de reiniciar. O placar mostra o nome do personagem (ou do Discord). */
+const QUIZ=(()=>{
  const POOL=DATA.personagens.filter(p=>p.q);
  const s=page('explorador','compass','Quem Disse?','Descubra qual viking de Pandherya disse cada frase.',`
-  <div class="game"><div class="gbar"><span>RODADA <b id="ex-r">1</b>/${POOL.length}</span><span><b id="ex-s">0</b> / ${(POOL.length*1000).toLocaleString('pt-BR')}</span></div>
-  <div class="clue"><h4>Quem disse isso?</h4><blockquote id="ex-clue"></blockquote></div>
+  <div class="game"><div class="gbar"><span>RODADA <b id="ex-r">–</b>/${POOL.length}</span><span><b id="ex-s">0</b> / ${(POOL.length*1000).toLocaleString('pt-BR')}</span></div>
+  <div class="clue"><h4 id="ex-h">Quem disse isso?</h4><blockquote id="ex-clue"></blockquote></div>
   <div class="opts" id="ex-opts"></div>
   <div style="text-align:center"><button class="gold-btn" id="ex-next" hidden>PRÓXIMA</button></div>
   <div class="board"><h4>Placar de Líderes</h4><ol id="ex-board"></ol></div></div>`);
  const $=id=>s.querySelector('#'+id);
- let round=0,score=0,order=[];
+ let J=null,order=[],k=0,ocupado=false;
+ const fmt=n=>Number(n).toLocaleString('pt-BR');
  async function board(){const el=$('ex-board');
-   try{const b=await DB.get('placar','select=nome,pontos&order=pontos.desc,criado_em.asc&limit=10');
-     el.innerHTML=b.length?b.map(x=>`<li>${esc(x.nome)} — ${x.pontos.toLocaleString('pt-BR')}</li>`).join(''):'<li style="list-style:none;margin-left:-20px">Ninguém jogou ainda. Seja o primeiro!</li>';}
+   try{const b=await DB.get('quiz_jogadas','select=nome,pontos,respondidas,total&order=pontos.desc,atualizado_em.asc&limit=10');
+     el.innerHTML=b.length?b.map(x=>`<li>${esc(x.nome)} — ${fmt(x.pontos)}${x.respondidas<x.total?` <small style="color:var(--faint)">(jogando)</small>`:''}</li>`).join(''):'<li style="list-style:none;margin-left:-20px">Ninguém jogou ainda. Seja o primeiro!</li>';}
    catch(e){el.innerHTML='<li style="list-style:none;margin-left:-20px">Não foi possível carregar o placar agora.</li>';}}
- function start(){order=POOL.map((_,i)=>i).sort(()=>Math.random()-.5);round=0;score=0;show();}
- function show(){
-   $('ex-r').textContent=round+1;$('ex-s').textContent=score.toLocaleString('pt-BR');$('ex-next').hidden=true;
-   const ans=order[round],P=POOL[ans];$('ex-clue').textContent=`“${P.q}”`;
-   const opts=[ans];while(opts.length<4){const k=Math.floor(Math.random()*POOL.length);if(!opts.includes(k))opts.push(k);}opts.sort(()=>Math.random()-.5);
-   $('ex-opts').innerHTML=opts.map(k=>`<button data-k="${k}"><img src="${POOL[k].img}" alt="">${POOL[k].n}</button>`).join('');
-   $('ex-opts').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-     const ok=+b.dataset.k===ans;if(ok)score+=1000;
-     $('ex-opts').querySelectorAll('button').forEach(x=>{x.disabled=true;if(+x.dataset.k===ans)x.classList.add('ok');});if(!ok)b.classList.add('bad');
-     $('ex-s').textContent=score.toLocaleString('pt-BR');
-     $('ex-next').textContent=round===POOL.length-1?'VER RESULTADO':'PRÓXIMA';$('ex-next').hidden=false;}));
+ function tela(h,txt,html){$('ex-h').textContent=h;$('ex-clue').innerHTML=txt;$('ex-opts').innerHTML=html||'';$('ex-next').hidden=true;}
+ function placarTopo(){$('ex-r').textContent=J?Math.min(J.respondidas+1,J.total):'–';$('ex-s').textContent=fmt(J?J.pontos:0);}
+ async function abrir(){
+   if(ocupado)return;
+   if(!CONTA.logado){J=null;placarTopo();
+     tela('Quem disse?','Entre com o Discord para jogar. Cada conta joga uma vez só, e o resultado vai direto para o placar.',`<button class="g-discord" id="ex-login" style="grid-column:1/-1;justify-self:center">${DISCORD_SVG}Entrar com Discord</button>`);
+     $('ex-login').onclick=CONTA.entrar;return;}
+   try{J=await CONTA.rpc('quiz_eu');}catch(e){tela('Quem disse?',esc(e.message));return;}
+   placarTopo();
+   if(J&&J.respondidas>=J.total)return fim();
+   if(J){tela('Partida em andamento',`Você já respondeu ${J.respondidas} de ${J.total} frases e está com ${fmt(J.pontos)} pontos. Continue de onde parou.`,'<button class="gold-btn" id="ex-go" style="grid-column:1/-1;justify-self:center">CONTINUAR PARTIDA</button>');}
+   else tela('Quem disse?',`São ${POOL.length} frases, valendo 1.000 pontos cada. <b>Você só tem uma chance:</b> cada resposta é gravada na hora e não dá para jogar de novo.`,'<button class="gold-btn" id="ex-go" style="grid-column:1/-1;justify-self:center">COMEÇAR</button>');
+   $('ex-go').onclick=comecar;
  }
- $('ex-next').addEventListener('click',()=>{
-   if(round<POOL.length-1){round++;show();return;}
-   if(round>=POOL.length){start();return;}
-   round=POOL.length;
-   $('ex-clue').textContent=`Fim! Você fez ${score.toLocaleString('pt-BR')} pontos.`;
-   $('ex-opts').innerHTML=`<input id="ex-name" placeholder="Seu nome de viking" maxlength="24" style="padding:12px;background:#0a0e1a;border:1px solid var(--line);border-radius:8px"><button id="ex-save">Salvar no placar</button>`;
-   $('ex-next').textContent='JOGAR DE NOVO';
-   $('ex-save').addEventListener('click',async()=>{const btn=$('ex-save'),n=($('ex-name').value.trim()||'Viking anônimo').slice(0,24);
-     btn.disabled=true;btn.textContent='Salvando...';
-     try{await DB.add('placar',{nome:n,pontos:score});btn.textContent='Salvo no placar';board();}
-     catch(e){btn.disabled=false;btn.textContent='Salvar no placar';$('ex-clue').textContent=e.message;}});
- });
- board();start();
-}
+ async function comecar(){
+   ocupado=true;$('ex-go').disabled=true;
+   try{J=await CONTA.rpc('quiz_comecar',{p_total:POOL.length});}catch(e){ocupado=false;tela('Quem disse?',esc(e.message));return;}
+   ocupado=false;
+   order=POOL.map((_,i)=>i).filter(i=>!(J.vistas||[]).includes(POOL[i].id)).sort(()=>Math.random()-.5);k=0;
+   if(!order.length||J.respondidas>=J.total)return fim();
+   show();
+ }
+ function show(){
+   placarTopo();$('ex-h').textContent='Quem disse isso?';$('ex-next').hidden=true;
+   const ans=order[k],P=POOL[ans];$('ex-clue').textContent=`“${P.q}”`;
+   const opts=[ans];while(opts.length<Math.min(4,POOL.length)){const r=Math.floor(Math.random()*POOL.length);if(!opts.includes(r))opts.push(r);}opts.sort(()=>Math.random()-.5);
+   $('ex-opts').innerHTML=opts.map(i=>`<button data-k="${i}"><img src="${POOL[i].img}" alt="">${POOL[i].n}</button>`).join('');
+   $('ex-opts').querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{
+     const ok=+b.dataset.k===ans;
+     $('ex-opts').querySelectorAll('button').forEach(x=>x.disabled=true);
+     try{J=await CONTA.rpc('quiz_responder',{p_pergunta:P.id,p_acertou:ok});}
+     catch(e){$('ex-clue').textContent=e.message;$('ex-opts').querySelectorAll('button').forEach(x=>x.disabled=false);return;}
+     $('ex-opts').querySelectorAll('button').forEach(x=>{if(+x.dataset.k===ans)x.classList.add('ok');});if(!ok)b.classList.add('bad');
+     $('ex-s').textContent=fmt(J.pontos);
+     const ultima=J.respondidas>=J.total||k>=order.length-1;
+     $('ex-next').textContent=ultima?'VER RESULTADO':'PRÓXIMA';$('ex-next').hidden=false;board();}));
+ }
+ function fim(){placarTopo();$('ex-r').textContent=J?J.total:'–';
+   tela('Fim de jogo',`Você fez <b style="color:var(--gold)">${fmt(J?J.pontos:0)}</b> pontos${J?` (${J.pontos/1000} de ${J.total} acertos)`:''}. O resultado já está no placar. Cada conta joga uma vez só.`);board();}
+ $('ex-next').addEventListener('click',()=>{if(J&&J.respondidas<J.total&&k<order.length-1){k++;show();}else fim();});
+ CONTA.on(()=>{if(location.hash==='#explorador')abrir();});
+ board();
+ return {abrir};
+})();
 function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 /* ---- doar ---- */
@@ -1821,6 +1842,7 @@ function route(){
   nav.querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.dataset.r===r&&!a.classList.contains('live')&&!a.classList.contains('wiki')));
   if(r==='mapa')drawWorld();
   if(r==='guilda')GUILDA.abrir();
+  if(r==='explorador')QUIZ.abrir();
   if(r==='admin'&&window.__admAbrir)window.__admAbrir();
   views[r].scrollTop=0;closeModal();
 }
