@@ -890,7 +890,7 @@ modal.addEventListener('click',e=>{
   const o=e.target.closest('[data-open]');if(o){e.preventDefault();const [c,i]=o.dataset.open.split(':');openDetail(c,i);return;}
   if(e.target===modal||e.target.id==='mclose')closeModal();});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal();});
-stage.addEventListener('click',e=>{const c=e.target.closest('.card');if(c)openDetail(c.dataset.cat,c.dataset.id);});
+stage.addEventListener('click',e=>{const c=e.target.closest('.card[data-cat]');if(c)openDetail(c.dataset.cat,c.dataset.id);});
 
 /* ---- biblioteca ---- */
 {
@@ -1065,10 +1065,11 @@ const GUILDA=(()=>{
 
  const s=page('guilda','crown','Guilda dos Aventureiros','Os contratos do Lox Bêbado e o Quadro de Honra dos aventureiros.',`
   <div class="g-top"><img class="g-crest" src="assets/guilda/guilda.webp" alt="Emblema da Guilda dos Aventureiros do Lox Bêbado">
-   <div class="tabs g-tabs"><button data-gt="mural" class="on">MURAL DE CONTRATOS</button><button data-gt="ranking">QUADRO DE HONRA</button><button data-gt="sug" hidden>SUGESTÕES DE MISSÕES</button></div>
+   <div class="tabs g-tabs"><button data-gt="mural" class="on">MURAL DE CONTRATOS</button><button data-gt="ranking">QUADRO DE HONRA</button><button data-gt="sug" hidden>SUGESTÕES DE MISSÕES</button><button data-gt="pedidos" hidden>PEDIDOS DO DISCORD</button></div>
    <div class="g-conta" id="g-conta"></div></div>
   <div id="g-mural"><div id="g-desk"></div><div class="g-bar" id="g-filtros"></div><div class="g-board" id="g-board"><p class="g-load">Carregando contratos...</p></div></div>
   <div id="g-sug" hidden><p style="color:var(--muted);margin:-4px 0 18px;line-height:1.6">Rascunhos de missões para o mural. Abra uma para ler, editar e aprovar. Aprovar publica no mural; recusar apaga de vez. Só o Mestre da Guilda vê esta aba.</p><div class="g-board" id="g-sboard"></div></div>
+  <div id="g-ped" hidden><p style="color:var(--muted);margin:-4px 0 18px;line-height:1.6">Contas do Discord pedindo para ser um personagem da guilda. Confira pelo @ antes de aprovar: o nome de exibição qualquer um troca, o @ é único. Só o Mestre da Guilda vê esta aba.</p><div class="grid" id="g-pgrid"></div></div>
   <div id="g-ranking" hidden><div class="g-founder" id="g-founder"></div><div class="g-tiers" id="g-tiers"></div>
    <div class="g-bar"><label class="search" style="max-width:320px">${svg('search')}<input id="g-q" placeholder="Buscar aventureiro" aria-label="Buscar aventureiro"></label><span class="g-sp"></span><span class="g-count" id="g-rc"></span></div>
    <div class="g-tablewrap"><table class="g-rank"><thead><tr><th>#</th><th>Aventureiro</th><th class="num">Missões honradas</th><th class="num">Pontos</th><th class="num">Falhas</th><th>Próxima classe</th></tr></thead><tbody id="g-rank"></tbody></table></div></div>`);
@@ -1081,6 +1082,7 @@ const GUILDA=(()=>{
  const AV=id=>S.av.find(a=>a.id===id);
  const nomeAv=id=>{const a=AV(id);return a?a.nome:'?';};
  const total=a=>a.pontos-a.falhas;
+ const disc=l=>{if(l.usuario)return {n:l.discord_nome||l.usuario,u:l.usuario};const m=/^(.*) \(@(.*)\)$/.exec(l.discord_nome||'');return m?{n:m[1],u:m[2]}:{n:l.discord_nome||'?',u:''};};
  const pts=c=>(VAL[c.rank]||0)*6;
  const soma=(c,itemId,st)=>c.entregas.filter(e=>e.item_id===itemId&&e.status===st).reduce((x,e)=>x+e.qtd,0);
  const stOf=c=>c.status==='aberto'?(c.concluida_em?'conferencia':c.people.length?'andamento':'aberto'):c.status;
@@ -1136,7 +1138,7 @@ const GUILDA=(()=>{
   el.innerHTML=`<div class="g-desk"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h4>Balcão do Mestre</h4><small style="color:var(--faint)">Só o Mestre da Guilda vê isso.</small></div><button class="gold-btn" id="g-novo">PUBLICAR NOVO CONTRATO</button></div>
    <div class="cols">${conc.length?`<div><h5>Marcados como concluídos (${conc.length})</h5>${conc.map(c=>`<div class="g-q"><span><b>${esc(c.titulo)}</b><br><small>Contrato nº ${c.id} · por ${esc(nomeAv(c.concluida_por))} em ${quando(c.concluida_em)}</small></span><span class="g-acts"><button class="tbtn" data-conc="${c.id}">Conferir</button></span></div>`).join('')}</div>`:''}<div><h5>Entregas para conferir no jogo (${pend.length})</h5>${pend.length?pend.map(({c,e})=>{const it=c.items.find(i=>i.id===e.item_id);
      return `<div class="g-q"><span><b>${esc(nomeAv(e.aventureiro_id))}</b> entregou ${e.qtd}× ${esc(it?it.nome:'item')}<br><small>Contrato nº ${c.id} · ${quando(e.criado_em)}</small></span><span class="g-acts"><button class="tbtn g-ok" data-ent="${e.id}" data-ok="1">Confirmar</button><button class="tbtn g-no-btn" data-ent="${e.id}">Recusar</button></span></div>`;}).join(''):'<p style="color:var(--faint);margin:6px 0">Nenhuma entrega aguardando.</p>'}</div>
-    <div><h5>Pedidos de vínculo de personagem (${S.links.length})</h5>${S.links.length?S.links.map(l=>`<div class="g-q"><span>Discord <b>${esc(l.discord_nome||'?')}</b> diz ser <b>${esc(l.nome)}</b>${l.novo?' <small style="color:var(--gold)">(novo aventureiro)</small>':''}<br><small>${quando(l.criado_em)}</small></span><span class="g-acts"><button class="tbtn g-ok" data-vin="${l.id}" data-ok="1">Aprovar</button><button class="tbtn g-no-btn" data-vin="${l.id}">Recusar</button></span></div>`).join(''):'<p style="color:var(--faint);margin:6px 0">Nenhum pedido.</p>'}</div></div></div>`;
+    <div><h5>Pedidos de vínculo de personagem (${S.links.length})</h5>${S.links.length?S.links.map(l=>`<div class="g-q"><span>Discord <b>${esc(disc(l).n)}</b>${disc(l).u?` <small>@${esc(disc(l).u)}</small>`:''} diz ser <b>${esc(l.nome)}</b>${l.novo?' <small style="color:var(--gold)">(novo aventureiro)</small>':''}<br><small>${quando(l.criado_em)}</small></span><span class="g-acts"><button class="tbtn g-ok" data-vin="${l.id}" data-ok="1">Aprovar</button><button class="tbtn g-no-btn" data-vin="${l.id}">Recusar</button></span></div>`).join(''):'<p style="color:var(--faint);margin:6px 0">Nenhum pedido.</p>'}</div></div></div>`;
   el.querySelector('#g-novo').onclick=()=>abrirForm();
   el.querySelectorAll('[data-conc]').forEach(b=>b.onclick=()=>abrirContrato(+b.dataset.conc));
   el.querySelectorAll('[data-ent]').forEach(b=>b.onclick=()=>acao('guilda_revisar_entrega',{p_id:+b.dataset.ent,p_confirmar:!!b.dataset.ok},b.dataset.ok?'Entrega confirmada.':'Entrega recusada.'));
@@ -1357,15 +1359,43 @@ const GUILDA=(()=>{
   const f=modal.querySelector(arm?'#gs-cancel':'#mclose');if(f)f.focus();
  }
 
+
+ /* ---------- pedidos de vínculo do Discord (só o Mestre) ---------- */
+ function drawPedidos(){
+  const g=$('#g-pgrid');
+  g.innerHTML=S.links.length?S.links.map(l=>{const d=disc(l),cl=l.classe||'E';
+   return `<button class="card" data-ped="${l.id}"><div class="thumb"><img src="${l.avatar?esc(l.avatar):EMB(cl)}" alt="" loading="lazy"><span class="chip">${l.novo?'Personagem novo':T(cl).n}</span></div>
+    <div class="cbody"><h3>${esc(d.n)}</h3><p>${d.u?`@${esc(d.u)} · `:''}quer ser <b style="color:var(--gold)">${esc(l.nome)}</b></p><p class="long">Pediu em ${new Date(l.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</p></div></button>`;}).join('')
+   :'<div class="empty"><h4>Nenhum pedido</h4><p>Quando alguém entrar com o Discord e escolher um personagem, o pedido aparece aqui.</p></div>';
+  g.querySelectorAll('[data-ped]').forEach(b=>b.onclick=()=>abrirPedido(b.dataset.ped));
+ }
+ function abrirPedido(id,arm=null){
+  const l=S.links.find(x=>x.id===id);if(!l){closeModal();return;}
+  const d=disc(l),a=l.aventureiro_id?AV(l.aventureiro_id):null,cl=(a&&a.classe)||l.classe||'E';
+  modal.innerHTML=`<div class="mbox gbox" role="dialog" aria-modal="true" aria-label="Pedido de ${esc(d.n)}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
+   <div class="g-lead"><img src="${l.avatar?esc(l.avatar):EMB(cl)}" alt="" style="border-radius:50%"><div><div class="kicker">Pedido de vínculo · ${new Date(l.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</div><h3>${esc(d.n)}</h3><p style="margin:4px 0 0;color:var(--muted)">${d.u?`Usuário do Discord: <b style="color:var(--text)">@${esc(d.u)}</b>`:'Usuário do Discord não informado'}</p></div></div>
+   <div class="g-dark-note" style="margin-top:18px">Quer ser <b style="color:var(--gold)">${esc(l.nome)}</b>. ${l.novo?'É um personagem novo: entra na guilda como Estanho, com 0 missões.':a?`Esse personagem já está no livro da guilda: ${T(a.classe).n}, ${a.missoes} missões, ${(a.pontos-a.falhas).toLocaleString('pt-BR')} pontos.`:'Esse personagem já está no livro da guilda.'}</div>
+   <p style="color:var(--faint);font-size:13px;line-height:1.6">Aprovado, o personagem fica preso a essa conta do Discord e ela já pode aceitar contratos. Recusado, a pessoa pode pedir de novo.</p>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">${arm==='recusar'?`<button class="tbtn g-no-btn" id="gp-no">Confirmar: recusar pedido</button><button class="tbtn" id="gp-cancel">Cancelar</button>`
+     :`<button class="gold-btn" id="gp-ok">APROVAR</button><button class="tbtn g-no-btn" id="gp-no">Recusar</button>`}</div></div></div>`;
+  modal.hidden=false;
+  const on=(q,f)=>{const b=modal.querySelector(q);if(b)b.onclick=f;};
+  on('#gp-cancel',()=>abrirPedido(id));
+  on('#gp-ok',()=>acao('guilda_revisar_vinculo',{p_id:id,p_aprovar:true},`Aprovado. ${l.nome} agora é de ${d.n}.`,()=>closeModal()));
+  on('#gp-no',()=>{if(arm!=='recusar'){abrirPedido(id,'recusar');return;}acao('guilda_revisar_vinculo',{p_id:id,p_aprovar:false},'Pedido recusado.',()=>closeModal());});
+  const f=modal.querySelector(arm?'#gp-cancel':'#mclose');if(f)f.focus();
+ }
+
  /* ---------- abas e montagem ---------- */
  function render(){
   drawConta();
-  if(S.tab==='sug'&&!mestre())S.tab='mural';
+  if((S.tab==='sug'||S.tab==='pedidos')&&!mestre())S.tab='mural';
+  const pb=s.querySelector('[data-gt="pedidos"]');pb.hidden=!mestre();pb.textContent=`PEDIDOS DO DISCORD${S.links.length?` (${S.links.length})`:''}`;
   const sb=s.querySelector('[data-gt="sug"]');sb.hidden=!mestre();sb.textContent=`SUGESTÕES DE MISSÕES${S.sug.length?` (${S.sug.length})`:''}`;
   s.querySelectorAll('[data-gt]').forEach(b=>b.classList.toggle('on',b.dataset.gt===S.tab));
-  $('#g-mural').hidden=S.tab!=='mural';$('#g-ranking').hidden=S.tab!=='ranking';$('#g-sug').hidden=S.tab!=='sug';
+  $('#g-mural').hidden=S.tab!=='mural';$('#g-ranking').hidden=S.tab!=='ranking';$('#g-sug').hidden=S.tab!=='sug';$('#g-ped').hidden=S.tab!=='pedidos';
   if(!S.ok)return;
-  drawDesk();drawFiltros();drawBoard();drawRanking();if(mestre())drawSug();
+  drawDesk();drawFiltros();drawBoard();drawRanking();if(mestre()){drawSug();drawPedidos();}
  }
  s.querySelectorAll('[data-gt]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.gt;render();});
  $('#g-q').oninput=e=>{S.q=e.target.value;drawRanking();};
