@@ -1059,15 +1059,16 @@ const GUILDA=(()=>{
  const EMB=k=>`assets/guilda/r_${k==='SSS+'?'SSSp':k}.webp`;
  const VAL={E:1,D:2,C:3,B:4,A:5,S:6,SS:7};
  const BIOMAS=['Prado','Floresta Negra','Pântano','Montanha','Planície','Mistlands','Ashlands','Deep North','Oceano'];
- const TIPOS=['Coleta','Caça','Extermínio','Exploração','Escolta','Defesa','Investigação','Especial'];
+ const TIPOS=['Coleta','Caça','Extermínio','Exploração','Escolta','Resgate','Transporte','Defesa','Investigação','Especial'];
  const ST={aberto:'Aberto',andamento:'Em andamento',conferencia:'A conferir',honrada:'Honrada',fracassada:'Fracassada'};
- const S={tab:'mural',filtro:'aberto',bioma:'',rank:'',tier:'',q:'',av:[],cs:[],links:[],ok:false};
+ const S={sug:[],tab:'mural',filtro:'aberto',bioma:'',rank:'',tier:'',q:'',av:[],cs:[],links:[],ok:false};
 
  const s=page('guilda','crown','Guilda dos Aventureiros','Os contratos do Lox Bêbado e o Quadro de Honra dos aventureiros.',`
   <div class="g-top"><img class="g-crest" src="assets/guilda/guilda.webp" alt="Emblema da Guilda dos Aventureiros do Lox Bêbado">
-   <div class="tabs g-tabs"><button data-gt="mural" class="on">MURAL DE CONTRATOS</button><button data-gt="ranking">QUADRO DE HONRA</button></div>
+   <div class="tabs g-tabs"><button data-gt="mural" class="on">MURAL DE CONTRATOS</button><button data-gt="ranking">QUADRO DE HONRA</button><button data-gt="sug" hidden>SUGESTÕES DE MISSÕES</button></div>
    <div class="g-conta" id="g-conta"></div></div>
   <div id="g-mural"><div id="g-desk"></div><div class="g-bar" id="g-filtros"></div><div class="g-board" id="g-board"><p class="g-load">Carregando contratos...</p></div></div>
+  <div id="g-sug" hidden><p style="color:var(--muted);margin:-4px 0 18px;line-height:1.6">Rascunhos de missões para o mural. Abra uma para ler, editar e aprovar. Aprovar publica no mural; recusar apaga de vez. Só o Mestre da Guilda vê esta aba.</p><div class="g-board" id="g-sboard"></div></div>
   <div id="g-ranking" hidden><div class="g-founder" id="g-founder"></div><div class="g-tiers" id="g-tiers"></div>
    <div class="g-bar"><label class="search" style="max-width:320px">${svg('search')}<input id="g-q" placeholder="Buscar aventureiro" aria-label="Buscar aventureiro"></label><span class="g-sp"></span><span class="g-count" id="g-rc"></span></div>
    <div class="g-tablewrap"><table class="g-rank"><thead><tr><th>#</th><th>Aventureiro</th><th class="num">Missões honradas</th><th class="num">Pontos</th><th class="num">Falhas</th><th>Próxima classe</th></tr></thead><tbody id="g-rank"></tbody></table></div></div>`);
@@ -1109,7 +1110,7 @@ const GUILDA=(()=>{
     DB.get('guilda_contratos',sel+'&status=neq.aberto&order=encerrado_em.desc&limit=40')]);
    S.av=av;S.cs=ab.concat(enc).map(norm);S.ok=true;
   }catch(e){$('#g-board').innerHTML='<p class="g-load">Não foi possível carregar os contratos agora.</p>';return;}
-  S.links=[];if(mestre()){try{S.links=await CONTA.rpc('guilda_vinculos_pendentes');}catch(e){}}
+  S.links=[];S.sug=[];if(mestre()){try{S.links=await CONTA.rpc('guilda_vinculos_pendentes');}catch(e){}try{S.sug=await CONTA.rpc('guilda_sugestoes_lista')||[];}catch(e){}}
   render();
  }
 
@@ -1231,11 +1232,11 @@ const GUILDA=(()=>{
  }
 
  /* ---------- publicar / editar contrato (Mestre) ---------- */
- function abrirForm(c){
-  const ed=!!c;c=c||{};
+ function abrirForm(c,sug){
+  const ed=!!c&&!sug;c=c||{};
   const opt=(arr,v)=>arr.map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${l}</option>`).join('');
   modal.innerHTML=`<div class="mbox gbox" role="dialog" aria-modal="true" aria-label="${ed?'Editar contrato':'Novo contrato'}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
-   <div class="kicker">Mestre da Guilda</div><h3>${ed?`Editar contrato nº ${c.id}`:'Novo contrato'}</h3><p style="color:var(--muted);margin:4px 0 16px">${ed?'Os itens não mudam depois de publicado.':'Vai direto para o mural como Aberto.'}</p>
+   <div class="kicker">Mestre da Guilda</div><h3>${sug?'Editar sugestão':ed?`Editar contrato nº ${c.id}`:'Novo contrato'}</h3><p style="color:var(--muted);margin:4px 0 16px">${sug?'Ajuste o que quiser. A sugestão só vai para o mural quando você aprovar.':ed?'Os itens não mudam depois de publicado.':'Vai direto para o mural como Aberto.'}</p>
    <form class="fgrid" id="gf">
     <label class="fld full"><span>Título</span><input type="text" id="gf-t" maxlength="120" required value="${esc(c.titulo||'')}" placeholder="Ex.: Caça de trolls"></label>
     <label class="fld"><span>Tipo</span><select id="gf-tipo"><option value="">–</option>${opt(TIPOS.map(x=>[x,x]),c.tipo)}</select></label>
@@ -1244,20 +1245,21 @@ const GUILDA=(()=>{
     <label class="fld"><span>Classe recomendada</span><select id="gf-rec">${opt(TIERS.slice(0,8).map(t=>[t.k,`${t.n} (${t.k})`]),c.classe_rec||'E')}</select></label>
     <label class="fld"><span>Recompensa</span><input type="text" id="gf-rw" maxlength="120" value="${esc(c.recompensa||'')}" placeholder="Ex.: 250 gold + comida"></label>
     <label class="fld"><span>Vagas de aventureiros</span><input type="text" inputmode="numeric" id="gf-v" value="${c.vagas||3}"></label>
-    <div class="fld full"><span>Prazo (conta a partir de quando alguém aceita)</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input type="text" inputmode="numeric" id="gf-pd" value="${ed?Math.floor((c.prazo_horas||0)/24):3}" style="width:80px" aria-label="Dias de prazo"> dias <input type="text" inputmode="numeric" id="gf-ph" value="${ed?(c.prazo_horas||0)%24:0}" style="width:80px" aria-label="Horas de prazo"> horas</div><small>Se o prazo vencer sem o contrato ser marcado como concluído, ele falha: cada participante perde 40% dos pontos que ganharia e o contrato volta para o mural. Deixe 0 e 0 para não ter prazo.</small></div>
+    <div class="fld full"><span>Prazo (conta a partir de quando alguém aceita)</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input type="text" inputmode="numeric" id="gf-pd" value="${ed||sug?Math.floor((c.prazo_horas||0)/24):3}" style="width:80px" aria-label="Dias de prazo"> dias <input type="text" inputmode="numeric" id="gf-ph" value="${ed||sug?(c.prazo_horas||0)%24:0}" style="width:80px" aria-label="Horas de prazo"> horas</div><small>Se o prazo vencer sem o contrato ser marcado como concluído, ele falha: cada participante perde 40% dos pontos que ganharia e o contrato volta para o mural. Deixe 0 e 0 para não ter prazo.</small></div>
     ${ed?'':`<div class="fld full"><span>Itens a entregar (opcional)</span><div id="gf-itens"></div><div><button type="button" class="tbtn" id="gf-add">Adicionar item</button></div></div>`}
     <label class="fld full"><span>Descrição</span><textarea id="gf-d" rows="3" maxlength="3000" placeholder="O que o aventureiro precisa saber">${esc(c.descricao||'')}</textarea></label>
-    <div class="full"><button class="gold-btn" type="submit">${ed?'SALVAR':'PUBLICAR NO MURAL'}</button><p class="fmsg err" id="gf-m"></p></div>
+    <div class="full"><button class="gold-btn" type="submit">${ed||sug?'SALVAR':'PUBLICAR NO MURAL'}</button><p class="fmsg err" id="gf-m"></p></div>
    </form></div></div>`;
   modal.hidden=false;
   const box=modal.querySelector('#gf-itens');
-  const add=()=>{const d=document.createElement('div');d.className='g-irow';d.innerHTML='<input type="text" maxlength="80" placeholder="Item" aria-label="Nome do item"><input type="number" min="1" placeholder="Qtd." aria-label="Quantidade">';box.appendChild(d);};
-  if(box){add();modal.querySelector('#gf-add').onclick=add;}
+  const add=(x={})=>{const d=document.createElement('div');d.className='g-irow';d.innerHTML=`<input type="text" maxlength="80" placeholder="Item" aria-label="Nome do item" value="${esc(x.nome||'')}"><input type="number" min="1" placeholder="Qtd." aria-label="Quantidade" value="${x.qtd||''}">`;box.appendChild(d);};
+  if(box){(sug&&c.itens&&c.itens.length?c.itens:[{}]).forEach(x=>add(x));modal.querySelector('#gf-add').onclick=()=>add();}
   modal.querySelector('#gf').onsubmit=async ev=>{ev.preventDefault();const v=q=>modal.querySelector(q).value.trim();
    const p={titulo:v('#gf-t'),tipo:v('#gf-tipo'),bioma:v('#gf-b'),rank:v('#gf-r'),classe_rec:v('#gf-rec'),recompensa:v('#gf-rw'),vagas:Math.max(1,Math.min(30,parseInt(v('#gf-v'))||3)),descricao:v('#gf-d'),prazo_horas:Math.min(2160,Math.max(0,(parseInt(v('#gf-pd'))||0)*24+(parseInt(v('#gf-ph'))||0)))};
    if(box)p.itens=[...box.children].map(r=>({nome:r.children[0].value.trim(),qtd:+r.children[1].value||0})).filter(x=>x.nome&&x.qtd>0);
    const btn=ev.submitter||modal.querySelector('#gf button[type=submit]');btn.disabled=true;
-   try{const r=ed?await CONTA.rpc('guilda_editar',{p_id:c.id,p}):await CONTA.rpc('guilda_publicar',{p});
+   try{if(sug){await CONTA.rpc('guilda_sugestao_salvar',{p_id:c.id,p});await load();toast('Sugestão salva.');abrirSug(c.id);return;}
+     const r=ed?await CONTA.rpc('guilda_editar',{p_id:c.id,p}):await CONTA.rpc('guilda_publicar',{p});
      await load();if(ed){toast('Contrato salvo.');abrirContrato(c.id);}else{S.filtro='aberto';S.bioma='';render();closeModal();toast(`Contrato nº ${r} publicado no mural.`);}}
    catch(e){modal.querySelector('#gf-m').textContent=e.message;btn.disabled=false;}};
  }
@@ -1323,13 +1325,47 @@ const GUILDA=(()=>{
    catch(e){modal.querySelector('#gk-m').textContent=e.message;}};
  }
 
+
+ /* ---------- sugestões de missões (só o Mestre) ---------- */
+ function drawSug(){
+  const b=$('#g-sboard');
+  b.innerHTML=S.sug.length?S.sug.map((c,i)=>{const t=T(c.rank),its=(c.itens||[]);
+   return `<button class="g-card" style="--r:${[-.6,.5,-.3,.7,-.5,.2][i%6]}deg" data-s="${c.id}">
+    <div class="g-hd"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="g-no">Sugestão · Rank ${t.k}</div><h3>${esc(c.titulo)}</h3></div></div>
+    <div class="g-tags"><span class="g-st conferencia">Sugestão</span>${c.bioma?`<span class="g-tag">${c.bioma}</span>`:''}${c.tipo?`<span class="g-tag">${esc(c.tipo)}</span>`:''}</div>
+    ${its.length?`<div class="g-ppl">${its.map(x=>`${x.qtd}× ${esc(x.nome)}`).join(' · ')}</div>`:''}
+    ${c.prazo_horas?`<div class="g-prazo">Prazo: ${durTxt(c.prazo_horas)} · ${c.vagas} vaga${c.vagas>1?'s':''}</div>`:''}
+    <div class="g-ft"><span class="rw">${esc(c.recompensa||'Recompensa a combinar')}</span><span class="pts">+${pts(c)} pts</span></div></button>`;}).join('')
+   :'<div class="empty"><h4>Nenhuma sugestão</h4><p>Quando você pedir novas sugestões de missões, elas aparecem aqui.</p></div>';
+  b.querySelectorAll('[data-s]').forEach(el=>el.onclick=()=>abrirSug(+el.dataset.s));
+ }
+ function abrirSug(id,arm=null){
+  const c=S.sug.find(x=>x.id===id);if(!c){closeModal();return;}
+  const t=T(c.rank),rt=T(c.classe_rec),its=c.itens||[];
+  modal.innerHTML=`<div class="mbox gbox paper" role="dialog" aria-modal="true" aria-label="${esc(c.titulo)}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
+   <div class="g-lead"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="kicker">Sugestão de missão · <span class="g-st conferencia">Aguardando aprovação</span></div><h3>${esc(c.titulo)}</h3>${c.descricao?`<p class="g-desc">${esc(c.descricao).replace(/\n/g,'<br>')}</p>`:''}</div></div>
+   <dl class="g-dl"><div><dt>Bioma</dt><dd>${c.bioma||'–'}</dd></div><div><dt>Tipo</dt><dd>${esc(c.tipo||'–')}</dd></div><div><dt>Rank do contrato</dt><dd>${t.k} · +${pts(c)} pts</dd></div><div><dt>Classe recomendada</dt><dd>${rt.n}</dd></div><div><dt>Recompensa</dt><dd>${esc(c.recompensa||'A combinar')}</dd></div><div><dt>Vagas</dt><dd>${c.vagas}</dd></div><div><dt>Prazo</dt><dd>${c.prazo_horas?durTxt(c.prazo_horas)+' depois de aceito':'Sem prazo'}</dd></div></dl>
+   ${its.length?`<div class="g-h">Itens pedidos</div><table class="g-items"><thead><tr><th>Item</th><th class="num">Quantidade</th></tr></thead><tbody>${its.map(x=>`<tr><td>${esc(x.nome)}</td><td class="num">${x.qtd}</td></tr>`).join('')}</tbody></table>`:''}
+   <div class="g-mact">${arm==='recusar'?`<div class="g-confirm"><b>Recusar esta sugestão?</b><p>Ela será apagada de vez.</p><div class="g-mact" style="margin-top:10px"><button class="g-pbtn red" id="gs-recusar">Sim, recusar e apagar</button><button class="g-pbtn" id="gs-cancel">Cancelar</button></div></div>`
+     :`<button class="g-pbtn main" id="gs-aprovar">Aprovar e publicar no mural</button><button class="g-pbtn" id="gs-editar">Editar</button><button class="g-pbtn red" id="gs-recusar">Recusar</button>`}</div></div></div>`;
+  modal.hidden=false;
+  const on=(q,f)=>{const b=modal.querySelector(q);if(b)b.onclick=f;};
+  on('#gs-cancel',()=>abrirSug(id));
+  on('#gs-editar',()=>abrirForm(c,true));
+  on('#gs-recusar',()=>{if(arm!=='recusar'){abrirSug(id,'recusar');return;}acao('guilda_sugestao_recusar',{p_id:id},'Sugestão recusada e apagada.',()=>closeModal());});
+  on('#gs-aprovar',async()=>{const b=modal.querySelector('#gs-aprovar');b.disabled=true;acao('guilda_sugestao_aprovar',{p_id:id},r=>`Aprovada! Virou o contrato nº ${r} no mural.`,()=>closeModal());});
+  const f=modal.querySelector(arm?'#gs-cancel':'#mclose');if(f)f.focus();
+ }
+
  /* ---------- abas e montagem ---------- */
  function render(){
   drawConta();
+  if(S.tab==='sug'&&!mestre())S.tab='mural';
+  const sb=s.querySelector('[data-gt="sug"]');sb.hidden=!mestre();sb.textContent=`SUGESTÕES DE MISSÕES${S.sug.length?` (${S.sug.length})`:''}`;
   s.querySelectorAll('[data-gt]').forEach(b=>b.classList.toggle('on',b.dataset.gt===S.tab));
-  $('#g-mural').hidden=S.tab!=='mural';$('#g-ranking').hidden=S.tab!=='ranking';
+  $('#g-mural').hidden=S.tab!=='mural';$('#g-ranking').hidden=S.tab!=='ranking';$('#g-sug').hidden=S.tab!=='sug';
   if(!S.ok)return;
-  drawDesk();drawFiltros();drawBoard();drawRanking();
+  drawDesk();drawFiltros();drawBoard();drawRanking();if(mestre())drawSug();
  }
  s.querySelectorAll('[data-gt]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.gt;render();});
  $('#g-q').oninput=e=>{S.q=e.target.value;drawRanking();};
