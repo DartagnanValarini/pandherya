@@ -1065,11 +1065,9 @@ const GUILDA=(()=>{
 
  const s=page('guilda','crown','Guilda dos Aventureiros','Os contratos do Lox Bêbado e o Quadro de Honra dos aventureiros.',`
   <div class="g-top"><img class="g-crest" src="assets/guilda/guilda.webp" alt="Emblema da Guilda dos Aventureiros do Lox Bêbado">
-   <div class="tabs g-tabs"><button data-gt="mural" class="on">MURAL DE CONTRATOS</button><button data-gt="ranking">QUADRO DE HONRA</button><button data-gt="sug" hidden>SUGESTÕES DE MISSÕES</button><button data-gt="pedidos" hidden>PEDIDOS DO DISCORD</button></div>
+   <div class="tabs g-tabs"><button data-gt="mural" class="on">MURAL DE CONTRATOS</button><button data-gt="ranking">QUADRO DE HONRA</button></div>
    <div class="g-conta" id="g-conta"></div></div>
   <div id="g-mural"><div id="g-desk"></div><div class="g-bar" id="g-filtros"></div><div class="g-board" id="g-board"><p class="g-load">Carregando contratos...</p></div></div>
-  <div id="g-sug" hidden><p style="color:var(--muted);margin:-4px 0 18px;line-height:1.6">Rascunhos de missões para o mural. Abra uma para ler, editar e aprovar. Aprovar publica no mural; recusar apaga de vez. Só o Mestre da Guilda vê esta aba.</p><div class="g-board" id="g-sboard"></div></div>
-  <div id="g-ped" hidden><p style="color:var(--muted);margin:-4px 0 18px;line-height:1.6">Contas do Discord pedindo para ser um personagem da guilda. Confira pelo @ antes de aprovar: o nome de exibição qualquer um troca, o @ é único. Só o Mestre da Guilda vê esta aba.</p><div class="grid" id="g-pgrid"></div></div>
   <div id="g-ranking" hidden><div class="g-founder" id="g-founder"></div><div class="g-tiers" id="g-tiers"></div>
    <div class="g-bar"><label class="search" style="max-width:320px">${svg('search')}<input id="g-q" placeholder="Buscar aventureiro" aria-label="Buscar aventureiro"></label><span class="g-sp"></span><span class="g-count" id="g-rc"></span></div>
    <div class="g-tablewrap"><table class="g-rank"><thead><tr><th>#</th><th>Aventureiro</th><th class="num">Missões honradas</th><th class="num">Pontos</th><th class="num">Falhas</th><th>Próxima classe</th></tr></thead><tbody id="g-rank"></tbody></table></div></div>`);
@@ -1081,7 +1079,7 @@ const GUILDA=(()=>{
  const mestre=()=>!!(eu()&&eu().mestre);
  const AV=id=>S.av.find(a=>a.id===id);
  const nomeAv=id=>{const a=AV(id);return a?a.nome:'?';};
- const total=a=>a.pontos-a.falhas;
+ const total=a=>a.pontos;
  const disc=l=>{if(l.usuario)return {n:l.discord_nome||l.usuario,u:l.usuario};const m=/^(.*) \(@(.*)\)$/.exec(l.discord_nome||'');return m?{n:m[1],u:m[2]}:{n:l.discord_nome||'?',u:''};};
  const pts=c=>(VAL[c.rank]||0)*6+(c.pontos_extra||0);
  const ptsTxt=c=>c.pontos_extra?`${(VAL[c.rank]||0)*6} do rank + ${c.pontos_extra} extras = ${pts(c)} pts`:`+${pts(c)} pts`;
@@ -1099,13 +1097,14 @@ const GUILDA=(()=>{
    el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,4200);}
  const norm=c=>({...c,items:(c.guilda_itens||[]).sort((a,b)=>a.ordem-b.ordem||a.id-b.id),
    people:(c.guilda_participantes||[]).sort((a,b)=>a.entrou_em.localeCompare(b.entrou_em)).map(p=>p.aventureiro_id),
+   res:Object.fromEntries((c.guilda_participantes||[]).map(p=>[p.aventureiro_id,{r:p.resultado,p:p.pontos}])),
    entregas:(c.guilda_entregas||[]).sort((a,b)=>a.criado_em.localeCompare(b.criado_em))});
  async function acao(fn,args,okMsg,depois){try{const r=await CONTA.rpc(fn,args);if(okMsg)toast(typeof okMsg==='function'?okMsg(r):okMsg);await load();if(depois)depois(r);return r;}catch(e){toast(e.message);return null;}}
 
  /* ---------- dados ---------- */
  async function load(){
   await fetch(`${CONFIG.dbUrl}/rest/v1/rpc/guilda_vencer`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:'{}'}).catch(()=>{});
-  const sel='select=id,titulo,tipo,bioma,rank,classe_rec,recompensa,vagas,descricao,contratante,status,criado_em,encerrado_em,prazo_horas,pontos_extra,iniciado_em,concluida_em,concluida_por,guilda_itens(id,nome,qtd,ordem),guilda_participantes(aventureiro_id,entrou_em),guilda_entregas(id,item_id,aventureiro_id,qtd,status,motivo,criado_em)';
+  const sel='select=id,titulo,tipo,bioma,rank,classe_rec,recompensa,vagas,descricao,contratante,status,criado_em,encerrado_em,prazo_horas,pontos_extra,iniciado_em,concluida_em,concluida_por,guilda_itens(id,nome,qtd,ordem),guilda_participantes(aventureiro_id,entrou_em,resultado,pontos),guilda_entregas(id,item_id,aventureiro_id,qtd,status,motivo,criado_em)';
   try{
    const [av,ab,enc]=await Promise.all([
     DB.get('guilda_aventureiros','select=id,nome,classe,missoes,pontos,falhas,fora_ranking&ativo=is.true'),
@@ -1132,18 +1131,17 @@ const GUILDA=(()=>{
  }
 
  /* ---------- balcão do mestre ---------- */
- function drawDesk(){
-  const el=$('#g-desk');if(!mestre()){el.innerHTML='';return;}
+ function drawDesk(el){
+  if(!el)return;if(!mestre()){el.innerHTML='';return;}
   const pend=[];S.cs.filter(c=>c.status==='aberto').forEach(c=>c.entregas.forEach(e=>{if(e.status==='pendente')pend.push({c,e});}));
   const conc=S.cs.filter(c=>c.status==='aberto'&&c.concluida_em);
-  el.innerHTML=`<div class="g-desk"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h4>Balcão do Mestre</h4><small style="color:var(--faint)">Só o Mestre da Guilda vê isso.</small></div><button class="gold-btn" id="g-novo">PUBLICAR NOVO CONTRATO</button></div>
+  el.innerHTML=`<div class="g-desk"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h4>Balcão do Mestre</h4><small style="color:var(--faint)">Contratos marcados como concluídos e entregas para conferir no jogo.</small></div><button class="gold-btn" id="g-novo">PUBLICAR NOVO CONTRATO</button></div>
    <div class="cols">${conc.length?`<div><h5>Marcados como concluídos (${conc.length})</h5>${conc.map(c=>`<div class="g-q"><span><b>${esc(c.titulo)}</b><br><small>Contrato nº ${c.id} · por ${esc(nomeAv(c.concluida_por))} em ${quando(c.concluida_em)}</small></span><span class="g-acts"><button class="tbtn" data-conc="${c.id}">Conferir</button></span></div>`).join('')}</div>`:''}<div><h5>Entregas para conferir no jogo (${pend.length})</h5>${pend.length?pend.map(({c,e})=>{const it=c.items.find(i=>i.id===e.item_id);
      return `<div class="g-q"><span><b>${esc(nomeAv(e.aventureiro_id))}</b> entregou ${e.qtd}× ${esc(it?it.nome:'item')}<br><small>Contrato nº ${c.id} · ${quando(e.criado_em)}</small></span><span class="g-acts"><button class="tbtn g-ok" data-ent="${e.id}" data-ok="1">Confirmar</button><button class="tbtn g-no-btn" data-ent="${e.id}">Recusar</button></span></div>`;}).join(''):'<p style="color:var(--faint);margin:6px 0">Nenhuma entrega aguardando.</p>'}</div>
-    <div><h5>Pedidos de vínculo de personagem (${S.links.length})</h5>${S.links.length?S.links.map(l=>`<div class="g-q"><span>Discord <b>${esc(disc(l).n)}</b>${disc(l).u?` <small>@${esc(disc(l).u)}</small>`:''} diz ser <b>${esc(l.nome)}</b>${l.novo?' <small style="color:var(--gold)">(novo aventureiro)</small>':''}<br><small>${quando(l.criado_em)}</small></span><span class="g-acts"><button class="tbtn g-ok" data-vin="${l.id}" data-ok="1">Aprovar</button><button class="tbtn g-no-btn" data-vin="${l.id}">Recusar</button></span></div>`).join(''):'<p style="color:var(--faint);margin:6px 0">Nenhum pedido.</p>'}</div></div></div>`;
+</div></div>`;
   el.querySelector('#g-novo').onclick=()=>abrirForm();
   el.querySelectorAll('[data-conc]').forEach(b=>b.onclick=()=>abrirContrato(+b.dataset.conc));
   el.querySelectorAll('[data-ent]').forEach(b=>b.onclick=()=>acao('guilda_revisar_entrega',{p_id:+b.dataset.ent,p_confirmar:!!b.dataset.ok},b.dataset.ok?'Entrega confirmada.':'Entrega recusada.'));
-  el.querySelectorAll('[data-vin]').forEach(b=>b.onclick=()=>acao('guilda_revisar_vinculo',{p_id:b.dataset.vin,p_aprovar:!!b.dataset.ok},b.dataset.ok?'Vínculo aprovado. O aventureiro já pode aceitar contratos.':'Pedido recusado.'));
  }
 
  /* ---------- mural ---------- */
@@ -1200,16 +1198,18 @@ const GUILDA=(()=>{
   else if(vivo&&dentro&&arm==='concluir')acts=`<div class="g-confirm" style="background:rgba(46,90,31,.07);border-color:#8fb57a"><b>Marcar como concluído?</b><p>O prazo para e o contrato vai para a conferência do Forseti. Depois disso ninguém registra mais entregas nem desiste. Se ele conferir e não estiver feito, o contrato pode ser encerrado como fracassado.</p><div class="g-mact" style="margin-top:10px"><button class="g-pbtn main" id="gc-concluir">Sim, está concluído</button><button class="g-pbtn" id="gc-cancel">Cancelar</button></div></div>`;
   else if(vivo&&dentro)acts=`${c.items.length?'<button class="g-pbtn main" id="gc-entregar">Registrar entrega</button>':''}<button class="g-pbtn green" id="gc-concluir">Marcar como concluído</button><button class="g-pbtn red" id="gc-desistir">Desistir do contrato</button>${aviso}`;
   let mest='';
-  if(aberto&&mestre())mest=`<div class="g-h">Mestre da Guilda</div><div class="g-mact" style="margin-top:0">
-    <button class="g-pbtn green" id="gc-honrar">${arm==='honrada'?'Confirmar: honrar mesmo com itens faltando':'Encerrar como Honrada'}</button>
-    <button class="g-pbtn red" id="gc-falhar">${arm==='fracassada'?'Confirmar: marcar como fracassada':'Encerrar como Fracassada'}</button>
+  if(aberto&&mestre())mest=`<div class="g-h">Mestre da Guilda · integrantes</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${c.people.length?c.people.map((p,k)=>`<span class="g-tag" style="display:inline-flex;gap:6px;align-items:center;font-size:13px">${k===0?'<b>Líder:</b> ':''}${esc(nomeAv(p))}<button class="g-pbtn sm" data-tira="${p}" style="padding:0 6px" aria-label="Tirar ${esc(nomeAv(p))} do contrato">×</button></span>`).join(''):'<span style="font-size:13px;color:#6a5640">Ninguém no contrato.</span>'}</div>
+    <div class="g-mact" style="margin-top:8px;align-items:center"><select id="gc-add" style="padding:6px 8px;border:1px solid rgba(43,31,19,.35);border-radius:4px;background:#fff8ea;color:#2b1f13;font:inherit;max-width:260px" aria-label="Aventureiro para adicionar"><option value="">Adicionar aventureiro...</option>${S.av.filter(a=>!c.people.includes(a.id)).sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).map(a=>`<option value="${a.id}">${esc(a.nome)} · ${T(a.classe).n}</option>`).join('')}</select><button class="g-pbtn sm" id="gc-add-ok">Adicionar</button><small style="color:#6a5640;flex-basis:100%">Tirar alguém por aqui não gera penalidade. Vale para qualquer aventureiro cadastrado, com ou sem Discord.</small></div>
+    <div class="g-h">Mestre da Guilda · contrato</div><div class="g-mact" style="margin-top:0">
+    <button class="g-pbtn main" id="gc-encerrar"${c.people.length?'':' disabled'}>Encerrar contrato</button>
     <button class="g-pbtn" id="gc-editar">Editar</button></div>
     <div class="g-mact" style="margin-top:10px;align-items:center"><span style="font-size:13px">Bônus de pontos (missão mais difícil que parecia):</span><input type="number" id="gc-bonus" value="0" step="1" style="width:90px;padding:6px 8px;border:1px solid rgba(43,31,19,.35);border-radius:4px;background:#fff8ea;color:#2b1f13;font:inherit" aria-label="Pontos a somar"><button class="g-pbtn sm" id="gc-bonus-ok">Somar aos pontos do contrato</button><small style="color:#6a5640;flex-basis:100%">Hoje vale ${pts(c)} pts${c.pontos_extra?` (${c.pontos_extra} extras)`:''}. Número negativo tira pontos extras. Vale para todos os integrantes quando você honrar.</small>${c.people.length?'':'<button class="g-pbtn red" id="gc-excluir">'+(arm==='excluir'?'Confirmar exclusão':'Excluir')+'</button>'}</div>`;
   const log=c.entregas.length?`<ul class="g-log">${c.entregas.map(e=>{const it=c.items.find(i=>i.id===e.item_id);return `<li><span>${quando(e.criado_em)} · <b>${esc(nomeAv(e.aventureiro_id))}</b> entregou ${e.qtd}× ${esc(it?it.nome:'item')}${e.motivo?`<br><small style="color:#6a5640">${esc(e.motivo)}</small>`:''}</span><span style="display:flex;gap:6px;align-items:center"><span class="g-pill ${e.status}">${{pendente:'Aguardando Forseti',confirmada:'Confirmada',recusada:'Recusada'}[e.status]}</span>${mestre()&&e.status==='pendente'?`<button class="g-pbtn green sm" data-e="${e.id}" data-ok="1">Confirmar</button><button class="g-pbtn red sm" data-e="${e.id}">Recusar</button>`:''}</span></li>`;}).join('')}</ul>`:'<p style="color:#6a5640;margin:0">Nenhuma entrega registrada.</p>';
   modal.innerHTML=`<div class="mbox gbox paper" role="dialog" aria-modal="true" aria-label="${esc(c.titulo)}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
    <div class="g-lead"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="kicker">Contrato nº ${c.id} · <span class="g-st ${st}">${ST[st]}</span></div><h3>${esc(c.titulo)}</h3>${c.descricao?`<p class="g-desc">${esc(c.descricao).replace(/\n/g,'<br>')}</p>`:''}</div></div>
    <dl class="g-dl"><div><dt>Bioma</dt><dd>${c.bioma||'–'}</dd></div><div><dt>Tipo</dt><dd>${esc(c.tipo||'–')}</dd></div><div><dt>Rank do contrato</dt><dd>${t.k} · ${ptsTxt(c)}</dd></div><div><dt>Classe recomendada</dt><dd>${rt.n}</dd></div><div><dt>Recompensa</dt><dd>${esc(c.recompensa||'A combinar')}</dd></div><div><dt>Contratante</dt><dd>${esc(c.contratante)}</dd></div>${aberto?`<div><dt>Prazo</dt><dd${urgente(c)?' style="color:#9b2f1b"':''}>${prazoTxt(c)}</dd></div>`:''}</dl>
-   <div class="g-h">Aventureiros (${c.people.length}/${c.vagas})</div><p style="margin:0;line-height:1.8">${c.people.length?c.people.map((p,k)=>`${k===0?'<span class="g-lider">Líder da missão</span> ':''}<b>${esc(nomeAv(p))}</b> <small style="color:#6a5640">${T((AV(p)||{}).classe).n}</small>`).join(' · '):'Ninguém aceitou ainda. Quem aceitar primeiro vira o líder da missão.'}</p>
+   <div class="g-h">Aventureiros (${c.people.length}/${c.vagas})</div><p style="margin:0;line-height:1.8">${c.people.length?c.people.map((p,k)=>{const rr=c.res&&c.res[p]&&c.res[p].r;return `${k===0?'<span class="g-lider">Líder da missão</span> ':''}<b>${esc(nomeAv(p))}</b> <small style="color:#6a5640">${T((AV(p)||{}).classe).n}</small>${rr?` <span class="g-pill ${rr==='concluiu'?'confirmada':rr==='falhou'?'recusada':'pendente'}">${rr==='concluiu'?`Concluiu +${c.res[p].p}`:rr==='falhou'?`Falhou ${c.res[p].p}`:'Não participou'}</span>`:''}`;}).join(' · '):'Ninguém aceitou ainda. Quem aceitar primeiro vira o líder da missão.'}</p>
    ${c.items.length?`<div class="g-h">Itens pedidos</div><table class="g-items"><thead><tr><th>Item</th><th class="num">Pedido</th><th class="num">Confirmado</th><th class="num">Aguardando</th>${dentro&&vivo?'<th class="num">Entregar agora</th>':''}</tr></thead><tbody>${c.items.map((x,i)=>`<tr><td>${esc(x.nome)}</td><td class="num">${x.qtd}</td><td class="num">${soma(c,x.id,'confirmada')}</td><td class="num">${soma(c,x.id,'pendente')||'–'}</td>${dentro&&vivo?`<td class="num"><input type="number" min="0" max="${resta[i]}" value="0" data-it="${x.id}" aria-label="Quantidade de ${esc(x.nome)}"></td>`:''}</tr>`).join('')}</tbody></table>
     <div class="g-h">Entregas</div>${log}`:''}
    <div class="g-mact">${acts}</div>
@@ -1226,9 +1226,9 @@ const GUILDA=(()=>{
   on('#gc-desistir',()=>{if(arm!=='desistir'){abrirContrato(id,'desistir');return;}const lider=c.people[0]===me;acao('guilda_desistir',{p_contrato:id},r=>{const n=S.cs.find(x=>x.id===id),p=r&&r.penalidade?` Você perdeu ${r.penalidade} pontos.`:'';return (lider&&n&&n.people.length?`Você saiu. ${nomeAv(n.people[0])} agora é o líder da missão.`:'Você saiu do contrato.')+p;},reabrir);});
   on('#gc-entregar',()=>{const itens=[...modal.querySelectorAll('[data-it]')].map(i=>({item:+i.dataset.it,qtd:+i.value||0})).filter(x=>x.qtd>0);
     if(!itens.length){toast('Preencha a quantidade de pelo menos um item.');return;}acao('guilda_entregar',{p_contrato:id,p_itens:itens},'Entrega registrada. Agora é com o Forseti.',reabrir);});
-  on('#gc-honrar',()=>{if(faltam&&arm!=='honrada'){abrirContrato(id,'honrada');return;}
-    acao('guilda_encerrar',{p_id:id,p_status:'honrada'},r=>{const p=(r&&r.promocoes)||[];return `Contrato honrado. +${pts(c)} pts para cada participante.${p.length?' '+p.map(x=>`${x.nome} subiu para ${T(x.classe).n}`).join('; ')+'!':''}`;},()=>closeModal());});
-  on('#gc-falhar',()=>{if(arm!=='fracassada'){abrirContrato(id,'fracassada');return;}acao('guilda_encerrar',{p_id:id,p_status:'fracassada'},'Contrato marcado como fracassado.',()=>closeModal());});
+  on('#gc-encerrar',()=>abrirEncerrar(c));
+  on('#gc-add-ok',()=>{const v=+modal.querySelector('#gc-add').value;if(!v){toast('Escolha um aventureiro.');return;}acao('guilda_definir_participantes',{p_id:id,p_ids:c.people.concat(v)},`${nomeAv(v)} entrou no contrato.`,reabrir);});
+  modal.querySelectorAll('[data-tira]').forEach(b=>b.onclick=()=>{const v=+b.dataset.tira;acao('guilda_definir_participantes',{p_id:id,p_ids:c.people.filter(x=>x!==v)},`${nomeAv(v)} saiu do contrato, sem penalidade.`,reabrir);});
   on('#gc-excluir',()=>{if(arm!=='excluir'){abrirContrato(id,'excluir');return;}acao('guilda_excluir',{p_id:id},'Contrato excluído.',()=>closeModal());});
   on('#gc-editar',()=>abrirForm(c));
   on('#gc-bonus-ok',()=>{const v=parseInt(modal.querySelector('#gc-bonus').value)||0;if(!v){toast('Digite quantos pontos somar.');return;}acao('guilda_bonus',{p_id:id,p_pontos:v},r=>`Pontos extras do contrato agora: ${r}.`,reabrir);});
@@ -1253,7 +1253,7 @@ const GUILDA=(()=>{
     <label class="fld"><span>Vagas de aventureiros</span><input type="text" inputmode="numeric" id="gf-v" value="${c.vagas||3}"></label>
     <div class="fld full"><span>Prazo (conta a partir de quando alguém aceita)</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input type="text" inputmode="numeric" id="gf-pd" value="${ed||sug?Math.floor((c.prazo_horas||0)/24):3}" style="width:80px" aria-label="Dias de prazo"> dias <input type="text" inputmode="numeric" id="gf-ph" value="${ed||sug?(c.prazo_horas||0)%24:0}" style="width:80px" aria-label="Horas de prazo"> horas</div><small>Se o prazo vencer sem o contrato ser marcado como concluído, ele falha: cada participante perde 40% dos pontos que ganharia e o contrato volta para o mural. Deixe 0 e 0 para não ter prazo.</small></div>
     ${ed?'':`<div class="fld full"><span>Itens a entregar (opcional)</span><div id="gf-itens"></div><div><button type="button" class="tbtn" id="gf-add">Adicionar item</button></div></div>`}
-    ${sug?'':`<div class="fld full"><span>Integrantes já escolhidos (opcional)</span><div id="gf-int"><p class="fmsg" style="margin:4px 0">Carregando aventureiros com Discord...</p></div><small>Só aparecem aventureiros com conta do Discord vinculada. O primeiro escolhido é o líder. O relógio do prazo começa quando o contrato é publicado com integrantes.</small></div>`}
+    ${sug?'':`<div class="fld full"><span>Integrantes já escolhidos (opcional)</span><div id="gf-int"><p class="fmsg" style="margin:4px 0">Carregando aventureiros...</p></div><small>Qualquer aventureiro cadastrado, com ou sem Discord. O primeiro escolhido é o líder. O relógio do prazo começa quando o contrato é publicado com integrantes.</small></div>`}
     <label class="fld full"><span>Descrição</span><textarea id="gf-d" rows="3" maxlength="3000" placeholder="O que o aventureiro precisa saber">${esc(c.descricao||'')}</textarea></label>
     <div class="full"><button class="gold-btn" type="submit">${ed||sug?'SALVAR':'PUBLICAR NO MURAL'}</button><p class="fmsg err" id="gf-m"></p></div>
    </form></div></div>`;
@@ -1263,11 +1263,11 @@ const GUILDA=(()=>{
   if(box){(sug&&c.itens&&c.itens.length?c.itens:[{}]).forEach(x=>add(x));modal.querySelector('#gf-add').onclick=()=>add();}
   let escolhidos=null;const ib=modal.querySelector('#gf-int');
   if(ib){escolhidos=ed?[...(c.people||[])]:[];
-   CONTA.rpc('guilda_vinculados').then(lista=>{lista=lista||[];
+   Promise.resolve(S.av.map(a=>({id:a.id,nome:a.nome,classe:a.classe})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt'))).then(lista=>{
     const draw=(q='')=>{const f=lista.filter(a=>a.nome.toLowerCase().includes(q.toLowerCase()));
      ib.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px">${escolhidos.length?escolhidos.map((id,k)=>{const a=lista.find(x=>x.id===id)||AV(id)||{nome:'?'};return `<span class="g-chip on" style="cursor:default">${k===0?'Líder: ':''}${esc(a.nome)} <a href="#" data-rm="${id}" style="color:inherit;margin-left:4px" aria-label="Tirar ${esc(a.nome)}">×</a></span>`;}).join(''):'<span style="color:var(--faint);font-size:13px">Ninguém escolhido: o contrato fica aberto para quem quiser aceitar.</span>'}</div>
       <label class="search" style="max-width:none">${svg('search')}<input id="gf-iq" placeholder="Buscar aventureiro" aria-label="Buscar aventureiro" value="${esc(q)}"></label>
-      <div class="g-chars" style="max-height:200px">${f.length?f.map(a=>`<button type="button" data-ad="${a.id}" class="${escolhidos.includes(a.id)?'on':''}"><img src="${EMB(a.classe)}" alt="">${esc(a.nome)}<small>${escolhidos.includes(a.id)?'escolhido':T(a.classe).n}</small></button>`).join(''):'<p style="color:var(--faint);padding:10px 12px;margin:0">Nenhum aventureiro com Discord vinculado encontrado.</p>'}</div>`;
+      <div class="g-chars" style="max-height:200px">${f.length?f.map(a=>`<button type="button" data-ad="${a.id}" class="${escolhidos.includes(a.id)?'on':''}"><img src="${EMB(a.classe)}" alt="">${esc(a.nome)}<small>${escolhidos.includes(a.id)?'escolhido':T(a.classe).n}</small></button>`).join(''):'<p style="color:var(--faint);padding:10px 12px;margin:0">Nenhum aventureiro encontrado.</p>'}</div>`;
      const qi=ib.querySelector('#gf-iq');qi.oninput=e=>{draw(e.target.value);const n=ib.querySelector('#gf-iq');n.focus();n.setSelectionRange(n.value.length,n.value.length);};
      ib.querySelectorAll('[data-ad]').forEach(b=>b.onclick=()=>{const id=+b.dataset.ad;escolhidos=escolhidos.includes(id)?escolhidos.filter(x=>x!==id):escolhidos.concat(id);draw(qi.value);});
      ib.querySelectorAll('[data-rm]').forEach(b=>b.onclick=e=>{e.preventDefault();escolhidos=escolhidos.filter(x=>x!==+b.dataset.rm);draw(qi.value);});};
@@ -1346,8 +1346,8 @@ const GUILDA=(()=>{
 
 
  /* ---------- sugestões de missões (só o Mestre) ---------- */
- function drawSug(){
-  const b=$('#g-sboard');
+ function drawSug(b){
+  if(!b)return;
   b.innerHTML=S.sug.length?S.sug.map((c,i)=>{const t=T(c.rank),its=(c.itens||[]);
    return `<button class="g-card" style="--r:${[-.6,.5,-.3,.7,-.5,.2][i%6]}deg" data-s="${c.id}">
     <div class="g-hd"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="g-no">Sugestão · Rank ${t.k}</div><h3>${esc(c.titulo)}</h3></div></div>
@@ -1378,8 +1378,8 @@ const GUILDA=(()=>{
 
 
  /* ---------- pedidos de vínculo do Discord (só o Mestre) ---------- */
- function drawPedidos(){
-  const g=$('#g-pgrid');
+ function drawPedidos(g){
+  if(!g)return;
   g.innerHTML=S.links.length?S.links.map(l=>{const d=disc(l),cl=l.classe||'E';
    return `<button class="card" data-ped="${l.id}"><div class="thumb"><img src="${l.avatar?esc(l.avatar):EMB(cl)}" alt="" loading="lazy"><span class="chip">${l.novo?'Personagem novo':T(cl).n}</span></div>
     <div class="cbody"><h3>${esc(d.n)}</h3><p>${d.u?`@${esc(d.u)} · `:''}quer ser <b style="color:var(--gold)">${esc(l.nome)}</b></p><p class="long">Pediu em ${new Date(l.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</p></div></button>`;}).join('')
@@ -1391,7 +1391,7 @@ const GUILDA=(()=>{
   const d=disc(l),a=l.aventureiro_id?AV(l.aventureiro_id):null,cl=(a&&a.classe)||l.classe||'E';
   modal.innerHTML=`<div class="mbox gbox" role="dialog" aria-modal="true" aria-label="Pedido de ${esc(d.n)}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
    <div class="g-lead"><img src="${l.avatar?esc(l.avatar):EMB(cl)}" alt="" style="border-radius:50%"><div><div class="kicker">Pedido de vínculo · ${new Date(l.criado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</div><h3>${esc(d.n)}</h3><p style="margin:4px 0 0;color:var(--muted)">${d.u?`Usuário do Discord: <b style="color:var(--text)">@${esc(d.u)}</b>`:'Usuário do Discord não informado'}</p></div></div>
-   <div class="g-dark-note" style="margin-top:18px">Quer ser <b style="color:var(--gold)">${esc(l.nome)}</b>. ${l.novo?'É um personagem novo: entra na guilda como Estanho, com 0 missões.':a?`Esse personagem já está no livro da guilda: ${T(a.classe).n}, ${a.missoes} missões, ${(a.pontos-a.falhas).toLocaleString('pt-BR')} pontos.`:'Esse personagem já está no livro da guilda.'}</div>
+   <div class="g-dark-note" style="margin-top:18px">Quer ser <b style="color:var(--gold)">${esc(l.nome)}</b>. ${l.novo?'É um personagem novo: entra na guilda como Estanho, com 0 missões.':a?`Esse personagem já está no livro da guilda: ${T(a.classe).n}, ${a.missoes} missões, ${a.pontos.toLocaleString('pt-BR')} pontos.`:'Esse personagem já está no livro da guilda.'}</div>
    <p style="color:var(--faint);font-size:13px;line-height:1.6">Aprovado, o personagem fica preso a essa conta do Discord e ela já pode aceitar contratos. Recusado, a pessoa pode pedir de novo.</p>
    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">${arm==='recusar'?`<button class="tbtn g-no-btn" id="gp-no">Confirmar: recusar pedido</button><button class="tbtn" id="gp-cancel">Cancelar</button>`
      :`<button class="gold-btn" id="gp-ok">APROVAR</button><button class="tbtn g-no-btn" id="gp-no">Recusar</button>`}</div></div></div>`;
@@ -1403,21 +1403,115 @@ const GUILDA=(()=>{
   const f=modal.querySelector(arm?'#gp-cancel':'#mclose');if(f)f.focus();
  }
 
+
+ /* ---------- encerrar contrato: resultado de cada integrante ---------- */
+ function abrirEncerrar(c){
+  const val=pts(c),pen=Math.floor(val*4/10),faltam=c.items.some(x=>soma(c,x.id,'confirmada')<x.qtd);
+  modal.innerHTML=`<div class="mbox gbox paper" role="dialog" aria-modal="true" aria-label="Encerrar contrato"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
+   <div class="kicker">Mestre da Guilda · Contrato nº ${c.id}</div><h3>Encerrar: ${esc(c.titulo)}</h3>
+   <p style="margin:6px 0 14px;color:#5a4733;line-height:1.6">Escolha o resultado de cada integrante. <b>Concluiu</b> ganha os pontos (dá para mudar só para ele) e conta a missão. <b>Falhou</b> perde ${pen} pontos (40%) e soma uma falha. <b>Não participou</b> não ganha nem perde.${faltam?' <b style="color:#9b2f1b">Ainda faltam itens confirmados.</b>':''}</p>
+   <table class="g-items"><thead><tr><th>Aventureiro</th><th>Resultado</th><th class="num">Pontos</th></tr></thead><tbody>
+   ${c.people.map(p=>`<tr data-pp="${p}"><td><b>${esc(nomeAv(p))}</b> <small style="color:#6a5640">${T((AV(p)||{}).classe).n}</small></td>
+    <td><select data-r style="padding:5px 8px;border:1px solid rgba(43,31,19,.35);border-radius:4px;background:#fff8ea;color:#2b1f13;font:inherit" aria-label="Resultado de ${esc(nomeAv(p))}"><option value="concluiu">Concluiu</option><option value="falhou">Falhou</option><option value="ausente">Não participou</option></select></td>
+    <td class="num"><input type="number" data-p min="0" value="${val}" aria-label="Pontos de ${esc(nomeAv(p))}"><span data-pt hidden></span></td></tr>`).join('')}
+   </tbody></table>
+   <div class="g-mact"><button class="g-pbtn main" id="ge-ok">Encerrar contrato</button><button class="g-pbtn" id="ge-cancel">Voltar</button></div>
+   <p class="g-note" style="font-size:12.5px">O contrato fica como Honrado se pelo menos um integrante concluir. Cada um guarda o próprio resultado no histórico.</p></div></div>`;
+  modal.hidden=false;
+  modal.querySelectorAll('[data-pp]').forEach(tr=>{const sel=tr.querySelector('[data-r]'),inp=tr.querySelector('[data-p]'),pt=tr.querySelector('[data-pt]');
+   sel.onchange=()=>{const r=sel.value;inp.hidden=r!=='concluiu';pt.hidden=r==='concluiu';pt.textContent=r==='falhou'?`−${pen}`:'0';};});
+  modal.querySelector('#ge-cancel').onclick=()=>abrirContrato(c.id);
+  modal.querySelector('#ge-ok').onclick=()=>{const res=[...modal.querySelectorAll('[data-pp]')].map(tr=>({aventureiro:+tr.dataset.pp,resultado:tr.querySelector('[data-r]').value,pontos:Math.max(0,parseInt(tr.querySelector('[data-p]').value)||0)}));
+   modal.querySelector('#ge-ok').disabled=true;
+   acao('guilda_encerrar_individual',{p_id:c.id,p_res:res},r=>{const pr=(r&&r.promocoes)||[];return `Contrato ${r&&r.status==='honrada'?'honrado':'encerrado como fracassado'}. ${r?r.concluiram:0} de ${res.length} concluíram.${pr.length?' '+pr.map(x=>`${x.nome} subiu para ${T(x.classe).n}`).join('; ')+'!':''}`;},()=>closeModal());};
+ }
+
+ /* ---------- Central dos Admins: abas da Guilda ---------- */
+ let CENTRAL=null,AVF=[],avQ='',avF='';
+ async function carregarAvs(){try{AVF=await CONTA.rpc('guilda_aventureiros_lista')||[];}catch(e){toast(e.message);AVF=[];}}
+ function drawAvs(el){
+  const lista=AVF.filter(a=>a.nome.toLowerCase().includes(avQ.toLowerCase())&&(!avF||(avF==='sem'?!a.vinculado:a.vinculado)));
+  const n={'':AVF.length,sem:AVF.filter(a=>!a.vinculado).length,com:AVF.filter(a=>a.vinculado).length};
+  el.innerHTML=`<div class="g-bar"><button class="gold-btn" id="av-novo">CADASTRAR AVENTUREIRO</button><span class="g-sp"></span>
+    ${[['','TODOS'],['com','COM DISCORD'],['sem','SEM DISCORD']].map(([k,l])=>`<button class="g-chip${avF===k?' on':''}" data-avf="${k}">${l}<span class="n">${n[k]}</span></button>`).join('')}
+    <label class="search" style="max-width:240px">${svg('search')}<input id="av-q" placeholder="Buscar" aria-label="Buscar aventureiro" value="${esc(avQ)}"></label></div>
+   <p style="color:var(--muted);margin:0 0 14px;line-height:1.6;font-size:13px">Cadastre quem ainda não entrou no site. Com o @ do Discord preenchido, o vínculo acontece sozinho no primeiro login dele, mantendo rank e histórico.</p>
+   <div class="g-tablewrap"><table class="g-rank"><thead><tr><th>Aventureiro</th><th class="num">Missões</th><th class="num">Pontos</th><th class="num">Falhas</th><th>Discord</th><th></th></tr></thead><tbody>
+   ${lista.map(a=>{const t=T(a.classe);return `<tr><td><div class="g-adv"><img src="${EMB(t.k)}" alt=""><div><b>${esc(a.nome)}</b>${a.fora_ranking?' <span class="g-you">MESTRE</span>':''}<small style="color:${t.c}">${t.k} · ${t.n}${a.obs?` · <span style="color:var(--faint)">${esc(a.obs)}</span>`:''}</small></div></div></td>
+     <td class="num">${a.missoes}</td><td class="num">${a.pontos.toLocaleString('pt-BR')}</td><td class="num">${a.falhas||'–'}</td>
+     <td>${a.vinculado?`<span style="display:inline-flex;gap:8px;align-items:center">${a.avatar?`<img src="${esc(a.avatar)}" alt="" style="width:24px;height:24px;border-radius:50%">`:''}@${esc(a.usuario||'?')}</span>`:a.discord_usuario?`<span style="color:var(--muted)">@${esc(a.discord_usuario)}</span><br><small style="color:var(--faint)">vincula no 1º login</small>`:'<span style="color:var(--faint)">–</span>'}</td>
+     <td style="white-space:nowrap"><button class="tbtn" data-ave="${a.id}">Editar</button> <button class="tbtn" data-avc="${a.id}">Classe</button>${a.vinculado&&a.user_id?` <button class="tbtn g-no-btn" data-avd="${a.id}">Desvincular</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="6" style="color:var(--faint)">Ninguém encontrado.</td></tr>'}
+   </tbody></table></div>`;
+  el.querySelector('#av-novo').onclick=()=>abrirAvForm(null);
+  const q=el.querySelector('#av-q');q.oninput=e=>{avQ=e.target.value;drawAvs(el);const n2=el.querySelector('#av-q');n2.focus();n2.setSelectionRange(n2.value.length,n2.value.length);};
+  el.querySelectorAll('[data-avf]').forEach(b=>b.onclick=()=>{avF=b.dataset.avf;drawAvs(el);});
+  el.querySelectorAll('[data-ave]').forEach(b=>b.onclick=()=>abrirAvForm(AVF.find(a=>a.id===+b.dataset.ave)));
+  el.querySelectorAll('[data-avc]').forEach(b=>b.onclick=()=>abrirClasse(+b.dataset.avc));
+  el.querySelectorAll('[data-avd]').forEach(b=>b.onclick=async()=>{if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar';return;}const a=AVF.find(x=>x.id===+b.dataset.avd);
+    try{await CONTA.rpc('guilda_vincular_conta',{p_user:a.user_id,p_aventureiro:null});toast(`${a.nome} foi desvinculado do Discord.`);await atualizarCentral();}catch(e){toast(e.message);}});
+ }
+ function abrirAvForm(a){
+  const ed=!!a;a=a||{};
+  modal.innerHTML=`<div class="mbox gbox" role="dialog" aria-modal="true" aria-label="${ed?'Editar aventureiro':'Cadastrar aventureiro'}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
+   <div class="kicker">Mestre da Guilda</div><h3>${ed?`Editar ${esc(a.nome)}`:'Cadastrar aventureiro'}</h3>
+   <p style="color:var(--muted);margin:4px 0 16px;line-height:1.6">${ed?'Para mudar a classe, use o botão Classe na lista.':'O aventureiro aparece no Quadro de Honra e já pode entrar em contratos, mesmo sem login.'}</p>
+   <form class="fgrid" id="avf">
+    <label class="fld"><span>Nome do personagem</span><input type="text" id="avf-n" maxlength="40" required value="${esc(a.nome||'')}"></label>
+    ${ed?'':`<label class="fld"><span>Rank inicial</span><select id="avf-c">${TIERS.map(t=>`<option value="${t.k}">${t.n} (${t.k})${t.vagas?` · ${S.av.filter(x=>x.classe===t.k).length}/${t.vagas} vagas`:''}</option>`).join('')}</select></label>`}
+    <label class="fld"><span>@ do Discord (opcional)</span><input type="text" id="avf-d" maxlength="40" placeholder="ex.: forseti_47" value="${esc(a.discord_usuario||'')}"><small>O usuário (o que vem depois do @), não o nome de exibição. Com ele preenchido, o vínculo é automático no primeiro login.</small></label>
+    <label class="fld"><span>Observação</span><input type="text" id="avf-o" maxlength="200" value="${esc(a.obs||'')}" placeholder="ex.: clã, jogador, apelido"></label>
+    <div class="full"><button class="gold-btn" type="submit">${ed?'SALVAR':'CADASTRAR'}</button><p class="fmsg err" id="avf-m"></p></div></form></div></div>`;
+  modal.hidden=false;
+  modal.querySelector('#avf').onsubmit=async ev=>{ev.preventDefault();const v=q=>(modal.querySelector(q)||{value:''}).value.trim();
+   const p={nome:v('#avf-n'),classe:v('#avf-c'),discord_usuario:v('#avf-d'),obs:v('#avf-o')};const b=ev.submitter;if(b)b.disabled=true;
+   try{if(ed)await CONTA.rpc('guilda_aventureiro_editar',{p_id:a.id,p});else await CONTA.rpc('guilda_cadastrar',{p});
+     closeModal();toast(ed?'Aventureiro salvo.':`${p.nome} foi cadastrado.`);await atualizarCentral();}
+   catch(e){modal.querySelector('#avf-m').textContent=e.message;if(b)b.disabled=false;}};
+ }
+ async function atualizarCentral(){await load();if(CENTRAL&&CENTRAL.aba==='g-aventureiros'){await carregarAvs();drawCentral();}}
+ function drawCentral(){
+  if(!CENTRAL||!document.body.contains(CENTRAL.el))return;const {aba,el}=CENTRAL;
+  if(!mestre()){el.innerHTML='<div class="empty"><h4>Só para o Mestre da Guilda</h4><p>Peça ao dono do site para ligar o papel de Mestre na sua conta.</p></div>';return;}
+  if(aba==='g-contratos'){
+   const abertos=S.cs.filter(c=>c.status==='aberto'),enc=S.cs.filter(c=>c.status!=='aberto').slice(0,12);
+   el.innerHTML=`<div id="gc-desk"></div><div class="kicker" style="margin:4px 0 10px">Contratos abertos (${abertos.length})</div><div class="g-board" id="gc-ab"></div><div class="kicker" style="margin:26px 0 10px">Encerrados recentes</div><div class="g-board" id="gc-enc"></div>`;
+   drawDesk(el.querySelector('#gc-desk'));
+   const pinta=(box,l)=>{box.innerHTML=l.length?l.map(cardHTML).join(''):'<p style="color:var(--faint);grid-column:1/-1">Nenhum.</p>';box.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>abrirContrato(+b.dataset.c));};
+   pinta(el.querySelector('#gc-ab'),abertos);pinta(el.querySelector('#gc-enc'),enc);
+  }
+  else if(aba==='g-sugestoes'){el.innerHTML='<p style="color:var(--muted);margin:0 0 18px;line-height:1.6">Rascunhos de missões. Abra uma para ler, editar e aprovar. Aprovar publica no mural; recusar apaga de vez.</p><div class="g-board" id="gc-sug"></div>';drawSug(el.querySelector('#gc-sug'));}
+  else if(aba==='g-pedidos'){el.innerHTML='<p style="color:var(--muted);margin:0 0 18px;line-height:1.6">Contas do Discord pedindo para ser um personagem. Confira pelo @ antes de aprovar: o nome de exibição qualquer um troca, o @ é único.</p><div class="grid" id="gc-ped"></div>';drawPedidos(el.querySelector('#gc-ped'));}
+  else if(aba==='g-aventureiros')carregarAvs().then(()=>{if(CENTRAL&&CENTRAL.aba==='g-aventureiros')drawAvs(el);});
+ }
+ async function central(aba,el){CENTRAL={aba,el};el.innerHTML='<p class="fmsg">Carregando...</p>';if(!CONTA.eu)await CONTA.carregar();await load();if(aba==='g-aventureiros')await carregarAvs();drawCentral();}
+ /* vincular uma conta do Discord a um aventureiro (usado na aba Pessoas) */
+ async function escolherAventureiro(user,nome){
+  await carregarAvs();let q='';
+  const draw=()=>{const f=AVF.filter(a=>a.nome.toLowerCase().includes(q.toLowerCase()));
+   modal.innerHTML=`<div class="mbox gbox" role="dialog" aria-modal="true" aria-label="Vincular personagem"><div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">Vincular personagem</div><h3>${esc(nome)}</h3>
+    <label class="search" style="margin-top:12px">${svg('search')}<input id="ev-q" placeholder="Buscar aventureiro" aria-label="Buscar aventureiro" value="${esc(q)}"></label>
+    <div class="g-chars">${f.map(a=>`<button type="button" data-ev="${a.id}"${a.vinculado?' disabled style="opacity:.45"':''}><img src="${EMB(a.classe)}" alt="">${esc(a.nome)}<small>${a.vinculado?'já tem dono':T(a.classe).n}</small></button>`).join('')}</div></div></div>`;
+   modal.hidden=false;const qi=modal.querySelector('#ev-q');qi.oninput=e=>{q=e.target.value;draw();const n=modal.querySelector('#ev-q');n.focus();n.setSelectionRange(n.value.length,n.value.length);};
+   modal.querySelectorAll('[data-ev]').forEach(b=>b.onclick=async()=>{try{await CONTA.rpc('guilda_vincular_conta',{p_user:user,p_aventureiro:+b.dataset.ev});closeModal();toast('Personagem vinculado.');if(window.__admAbrir)window.__admAbrir();}catch(e){toast(e.message);}});};
+  draw();
+ }
+
  /* ---------- abas e montagem ---------- */
  function render(){
   drawConta();
-  if((S.tab==='sug'||S.tab==='pedidos')&&!mestre())S.tab='mural';
-  const pb=s.querySelector('[data-gt="pedidos"]');pb.hidden=!mestre();pb.textContent=`PEDIDOS DO DISCORD${S.links.length?` (${S.links.length})`:''}`;
-  const sb=s.querySelector('[data-gt="sug"]');sb.hidden=!mestre();sb.textContent=`SUGESTÕES DE MISSÕES${S.sug.length?` (${S.sug.length})`:''}`;
   s.querySelectorAll('[data-gt]').forEach(b=>b.classList.toggle('on',b.dataset.gt===S.tab));
-  $('#g-mural').hidden=S.tab!=='mural';$('#g-ranking').hidden=S.tab!=='ranking';$('#g-sug').hidden=S.tab!=='sug';$('#g-ped').hidden=S.tab!=='pedidos';
+  $('#g-mural').hidden=S.tab!=='mural';$('#g-ranking').hidden=S.tab!=='ranking';
   if(!S.ok)return;
-  drawDesk();drawFiltros();drawBoard();drawRanking();if(mestre()){drawSug();drawPedidos();}
+  const gd=$('#g-desk');
+  if(mestre()){const pend=S.cs.reduce((n,c)=>n+(c.status==='aberto'?c.entregas.filter(e=>e.status==='pendente').length:0),0),conc=S.cs.filter(c=>c.status==='aberto'&&c.concluida_em).length;
+   gd.innerHTML=`<div class="g-desk" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><h4>Você é Mestre da Guilda</h4><small style="color:var(--muted)">Contratos, entregas${pend?` (${pend} para conferir)`:''}${conc?`, ${conc} concluído${conc>1?'s':''}`:''}, sugestões${S.sug.length?` (${S.sug.length})`:''}, aventureiros e pedidos do Discord${S.links.length?` (${S.links.length})`:''} ficam na Central dos Admins.</small></div><a class="gold-btn" href="#admin">ABRIR NA CENTRAL</a></div>`;}
+  else gd.innerHTML='';
+  drawFiltros();drawBoard();drawRanking();drawCentral();
  }
  s.querySelectorAll('[data-gt]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.gt;render();});
  $('#g-q').oninput=e=>{S.q=e.target.value;drawRanking();};
  CONTA.on(()=>{render();if(S.ok&&mestre())load();});
- return {abrir(){const e=CONTA.erro;if(e)toast(e);load();},abrirVinculo};
+ return {abrir(){const e=CONTA.erro;if(e)toast(e);load();},abrirVinculo,central,escolherAventureiro};
 })();
 
 /* ---- live ---- */
@@ -1613,7 +1707,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
 /* ---- painel dos admins (#admin, fora do menu) ---- */
 /* Login: conta do Discord (CONTA). Só quem está em public.site_admins vê e aprova envios; o dono do site aprova novos admins. */
 {
- const s=page('admin','shield','Painel dos Admins','Revise as histórias enviadas pela comunidade.',`<div class="sub-wrap adm-wrap" id="adm"></div>`);
+ const s=page('admin','shield','Central dos Admins','Site, Guilda e Pessoas num lugar só.',`<div class="sub-wrap adm-wrap" id="adm"></div>`);
  const root=s.querySelector('#adm');
  /* sessão: a conta do Discord do site (CONTA). ses.email guarda o nome do admin, usado em "publicado por" e "revisado por" */
  const ses={email:''};let DONO=false;
@@ -1626,7 +1720,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
    if(!CONTA.logado){root.innerHTML=`<div class="box" style="max-width:460px;margin:0 auto"><h4>Entrar</h4><p style="color:var(--muted);line-height:1.6;margin-top:0">O painel dos admins usa a conta do Discord. Entre e, se ainda não for admin, peça acesso.</p><button class="g-discord" id="al-d">${DISCORD_SVG}Entrar com Discord</button></div>`;
      root.querySelector('#al-d').onclick=CONTA.entrar;return;}
    let me=info;if(!me){root.innerHTML='<p class="fmsg" style="text-align:center">Conferindo sua conta...</p>';try{me=await api('/rest/v1/rpc/admin_eu',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){root.innerHTML=`<p class="fmsg err" style="text-align:center">${esc(e.message)}</p>`;return;}}
-   if(me&&me.admin)return listView();
+   if(me&&(me.admin||(CONTA.eu&&CONTA.eu.mestre)))return listView();
    const pend=me&&me.pedido==='pendente',rec=me&&me.pedido==='recusado';
    root.innerHTML=`<div class="box" style="max-width:480px;margin:0 auto"><h4>Painel dos Admins</h4>
     <p style="line-height:1.6;margin-top:0">Você entrou como <b style="color:var(--gold)">${esc((me&&me.nome)||'?')}</b>${me&&me.usuario?` <span style="color:var(--faint)">(@${esc(me.usuario)})</span>`:''}, mas essa conta ainda não é admin.</p>
@@ -1651,19 +1745,24 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
  async function listView(){
    if(!CONTA.logado)return loginView();
    const me=await api('/rest/v1/rpc/admin_eu',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>null);
-   if(!me||!me.admin)return loginView(me);
+   const ge=CONTA.eu||await CONTA.carregar();const MESTRE=!!(ge&&ge.mestre);
+   if(!me||(!me.admin&&!MESTRE))return loginView(me);
    ses.email=me.nome||me.usuario||'';DONO=!!me.dono;
    if(!window.__nomesSync){window.__nomesSync=1;const rows=['personagens','ordens'].flatMap(c=>ORIGINAL[c].map(i=>({tipo:c,item_id:i.id,nome:String(i.n),atualizado_em:new Date().toISOString()})));
      api('/rest/v1/nomes_oficiais?on_conflict=tipo,item_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)}).catch(()=>{window.__nomesSync=0;});}
-   root.innerHTML=`<div class="adm-bar">
-     <div class="seg">${[['pendente','PENDENTES'],['aprovado','APROVADOS'],['recusado','RECUSADOS'],['nosite','NO SITE'],['jornal','JORNAL'],['admins','ADMINS']].map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div>
-     <span class="who">${esc(ses.email||'')} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
+   const GRUPOS=[me.admin&&['Site',[['pendente','PENDENTES'],['aprovado','APROVADAS'],['recusado','RECUSADAS'],['nosite','NO SITE'],['jornal','JORNAL']]],
+     MESTRE&&['Guilda',[['g-contratos','CONTRATOS'],['g-aventureiros','AVENTUREIROS'],['g-sugestoes','SUGESTÕES'],['g-pedidos','PEDIDOS DO DISCORD']]],
+     me.dono&&['Pessoas',[['usuarios','USUÁRIOS']]]].filter(Boolean);
+   const ok=GRUPOS.flatMap(g=>g[1].map(x=>x[0]));if(!ok.includes(aba))aba=ok[0];
+   root.innerHTML=`<div class="adm-bar" style="align-items:flex-start"><div style="display:grid;gap:10px">${GRUPOS.map(([g,abas])=>`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="kicker" style="margin:0;min-width:64px">${g}</span><div class="seg">${abas.map(([k,l])=>`<button type="button" data-aba="${k}" class="${k===aba?'on':''}">${l}</button>`).join('')}</div></div>`).join('')}</div>
+     <span class="who">${esc(ses.email||'')}${me.dono?' · dono':''}${MESTRE?' · mestre':''} · <a href="#" id="adm-out" style="color:var(--gold)">sair</a></span></div><div id="adm-list"><p class="fmsg">Carregando...</p></div>`;
    root.querySelectorAll('[data-aba]').forEach(b=>b.addEventListener('click',()=>{aba=b.dataset.aba;try{sessionStorage.setItem('pdy-aba',aba);}catch(e){}listView();}));
    root.querySelector('#adm-out').addEventListener('click',e=>{e.preventDefault();CONTA.sair();});
    const list=root.querySelector('#adm-list');
    if(aba==='nosite')return noSite(list);
    if(aba==='jornal')return jornalAdm(list);
-   if(aba==='admins')return adminsAdm(list);
+   if(aba==='usuarios')return usuariosAdm(list);
+   if(aba.startsWith('g-'))return GUILDA.central(aba,list);
    try{
      const rows=await api(`/rest/v1/envios?select=*&status=eq.${aba}${aba==='aprovado'?'&arquivado=eq.false':''}&order=criado_em.${aba==='pendente'?'asc':'desc'}`);
      const priv=rows.length?await api(`/rest/v1/envios_privado?select=envio_id,contato&envio_id=in.(${rows.map(r=>r.id).join(',')})`):[];
@@ -1703,24 +1802,37 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
      }
    }catch(err){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(err.message)}</p>`;}
  }
- /* aba ADMINS: contas do Discord com acesso ao painel. Só o dono do site aprova pedidos e remove admins. */
- async function adminsAdm(list){
+ /* aba USUÁRIOS E PERMISSÕES (só o dono): todo mundo que já entrou com o Discord; liga/desliga Admin e Mestre, vincula personagem */
+ async function usuariosAdm(list){
    list.innerHTML='<p class="fmsg">Carregando...</p>';
-   let d;try{d=await api('/rest/v1/rpc/admin_lista',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}
-   catch(e){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(e.message)}</p>`;return;}
-   const quando=t=>t?new Date(t).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
-   list.innerHTML=(d.dono?`<div class="box"><h4>Pedidos de acesso (${d.pedidos.length})</h4>${d.pedidos.length?`<div class="oc-list">${d.pedidos.map(p=>`<div class="oc-item"><div class="oc-row"><div class="nm">${esc(p.nome||'?')}<small>@${esc(p.usuario||'?')} · pediu em ${quando(p.criado_em)}</small></div><button class="tbtn" style="color:var(--gold)" data-pa="${p.user_id}" data-ok="1">Aprovar</button><button class="tbtn" style="color:var(--blood)" data-pa="${p.user_id}">Recusar</button></div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join('')}</div>`
-       :'<p class="fmsg" style="margin:0">Nenhum pedido. Quem entra com o Discord em pandherya.com.br/#admin pode pedir acesso, e o pedido aparece aqui.</p>'}<p class="fmsg" style="margin-top:10px">Confira pelo @ do Discord antes de aprovar: o nome de exibição qualquer um pode trocar, o @ é único.</p></div>`
-     :'<p class="fmsg" style="margin:0 0 6px">Só o dono do site aprova pedidos e remove admins.</p>')+
-     `<div class="kicker" style="margin:22px 0 8px">Admins (${d.admins.length})</div><div class="oc-list">${d.admins.map(a=>`<div class="oc-item"><div class="oc-row"><div class="nm">${esc(a.nome||'?')}${a.voce?' <small style="display:inline;color:var(--gold)">(você)</small>':''}<small>@${esc(a.usuario||'?')}${a.dono?' · dono do site':''}${a.incluido_por&&!a.dono?' · aprovado por '+esc(a.incluido_por):''}${a.ultimo_login?' · último acesso '+quando(a.ultimo_login):''}</small></div>${d.dono&&!a.voce?`<button class="tbtn" style="color:var(--blood)" data-adrm="${esc(a.discord_id)}">Remover</button>`:''}</div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join('')}</div>`;
-   const rpc=(fn,b)=>api('/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
-   list.querySelectorAll('[data-pa]').forEach(b=>b.onclick=async()=>{const mm=b.closest('.oc-item').querySelector('[data-msg]');b.disabled=true;
-     try{await rpc('admin_decidir',{p_user:b.dataset.pa,p_aprovar:!!b.dataset.ok});mm.textContent=b.dataset.ok?'Aprovado. Já pode usar o painel.':'Recusado.';mm.className='fmsg ok';setTimeout(()=>adminsAdm(list),800);}
-     catch(x){b.disabled=false;mm.textContent=x.message;mm.className='fmsg err';}});
-   list.querySelectorAll('[data-adrm]').forEach(b=>b.onclick=async()=>{const mm=b.closest('.oc-item').querySelector('[data-msg]');
-     if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar remoção';return;}
-     b.disabled=true;try{await rpc('admin_remover',{p_discord:b.dataset.adrm});mm.textContent='Removido.';mm.className='fmsg ok';setTimeout(()=>adminsAdm(list),700);}
-     catch(x){b.disabled=false;mm.textContent=x.message;mm.className='fmsg err';}});
+   const rpc=(fn,b={})=>api('/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+   let us,d;try{[us,d]=await Promise.all([rpc('central_usuarios'),rpc('admin_lista')]);}catch(e){list.innerHTML=`<p class="fmsg err">Não foi possível carregar: ${esc(e.message)}</p>`;return;}
+   const quando=t=>t?new Date(t).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'nunca';
+   let q='';
+   const draw=()=>{const f=us.filter(u=>`${u.nome} ${u.usuario} ${u.personagem?u.personagem.nome:''}`.toLowerCase().includes(q.toLowerCase()));
+    list.innerHTML=`${d.pedidos.length?`<div class="box" style="margin-bottom:20px"><h4>Pedidos de acesso de admin (${d.pedidos.length})</h4><div class="oc-list">${d.pedidos.map(p=>`<div class="oc-item"><div class="oc-row"><div class="nm">${esc(p.nome||'?')}<small>@${esc(p.usuario||'?')} · pediu em ${quando(p.criado_em)}</small></div><button class="tbtn" style="color:var(--gold)" data-pa="${p.user_id}" data-ok="1">Aprovar</button><button class="tbtn" style="color:var(--blood)" data-pa="${p.user_id}">Recusar</button></div></div>`).join('')}</div></div>`:''}
+     <div class="adm-bar" style="margin-bottom:12px"><span class="kicker" style="margin:0">Contas do Discord (${us.length})</span><label class="search" style="max-width:260px">${svg('search')}<input id="us-q" placeholder="Buscar nome, @ ou personagem" aria-label="Buscar usuário" value="${esc(q)}"></label></div>
+     <p class="fmsg" style="margin:0 0 12px">Admin vê a parte do Site. Mestre vê a parte da Guilda. Confira pelo @ antes de dar acesso: o nome de exibição qualquer um troca.</p>
+     <div class="oc-list">${f.map(u=>`<div class="oc-item"><div class="oc-row" style="flex-wrap:wrap">
+       ${u.avatar?`<img src="${esc(u.avatar)}" alt="" style="width:40px;height:40px;border-radius:50%;flex:none">`:'<span style="width:40px;height:40px;border-radius:50%;background:#1a2036;flex:none"></span>'}
+       <div class="nm">${esc(u.nome||'?')}${u.voce?' <small style="display:inline;color:var(--gold)">(você)</small>':''}<small>@${esc(u.usuario||'?')} · ${u.personagem?`personagem: <b style="color:var(--text)">${esc(u.personagem.nome)}</b>`:'sem personagem'} · último acesso ${quando(u.ultimo_login)}</small></div>
+       <button class="tbtn" data-papel="admin" data-d="${esc(u.discord_id)}" data-on="${u.admin?1:0}" ${u.dono?'disabled title="Dono do site"':''} style="${u.admin?'color:var(--gold);border-color:var(--gold-dim)':''}">${u.dono?'Dono':u.admin?'Admin ✓':'Admin'}</button>
+       <button class="tbtn" data-papel="mestre" data-d="${esc(u.discord_id)}" data-on="${u.mestre?1:0}" style="${u.mestre?'color:var(--gold);border-color:var(--gold-dim)':''}">${u.mestre?'Mestre ✓':'Mestre'}</button>
+       <button class="tbtn" data-vin="${u.user_id}" data-nome="${esc(u.nome||u.usuario||'')}">${u.personagem?'Trocar personagem':'Vincular personagem'}</button>
+       ${u.personagem?`<button class="tbtn" style="color:var(--blood)" data-desv="${u.user_id}">Desvincular</button>`:''}
+       </div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join('')||'<p class="fmsg">Ninguém encontrado.</p>'}</div>`;
+    const qi=list.querySelector('#us-q');qi.oninput=e=>{q=e.target.value;draw();const n=list.querySelector('#us-q');n.focus();n.setSelectionRange(n.value.length,n.value.length);};
+    const msg=b=>b.closest('.oc-item').querySelector('[data-msg]');
+    list.querySelectorAll('[data-pa]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await rpc('admin_decidir',{p_user:b.dataset.pa,p_aprovar:!!b.dataset.ok});usuariosAdm(list);}catch(x){b.disabled=false;msg(b).textContent=x.message;msg(b).className='fmsg err';}});
+    list.querySelectorAll('[data-papel]').forEach(b=>b.onclick=async()=>{const liga=b.dataset.on!=='1';
+      if(!liga&&b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent=`Tirar ${b.dataset.papel==='admin'?'Admin':'Mestre'}?`;return;}
+      b.disabled=true;try{await rpc('central_papel',{p_discord:b.dataset.d,p_papel:b.dataset.papel,p_ativo:liga});const u=us.find(x=>x.discord_id===b.dataset.d);u[b.dataset.papel]=liga;draw();}
+      catch(x){b.disabled=false;msg(b).textContent=x.message;msg(b).className='fmsg err';}});
+    list.querySelectorAll('[data-vin]').forEach(b=>b.onclick=()=>GUILDA.escolherAventureiro(b.dataset.vin,b.dataset.nome));
+    list.querySelectorAll('[data-desv]').forEach(b=>b.onclick=async()=>{if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar';return;}
+      b.disabled=true;try{await rpc('guilda_vincular_conta',{p_user:b.dataset.desv,p_aventureiro:null});usuariosAdm(list);}catch(x){b.disabled=false;msg(b).textContent=x.message;msg(b).className='fmsg err';}});
+   };
+   draw();
  }
  /* aba JORNAL: publicar, editar e apagar edições do Pandherya News */
  async function jornalAdm(list){
@@ -1935,7 +2047,7 @@ page('termos','scroll','Termos de Serviço','Pandherya',`<div class="box" style=
   const corpo=!CONTA.logado
    ?`<p style="color:var(--muted);line-height:1.6">Entre com a sua conta do Discord, a mesma do servidor. Não precisa criar senha.</p><p style="color:var(--muted);line-height:1.6;margin-top:0">Com o login você aceita contratos da Guilda dos Aventureiros no nome do seu personagem.</p><button class="g-discord" id="lg-d">${DISCORD_SVG}Entrar com Discord</button>`
    :`<p style="color:var(--muted);line-height:1.6">${e&&e.aventureiro?`Você está como <b style="color:var(--gold)">${esc(e.aventureiro.nome)}</b>${e.mestre?' · Mestre da Guilda':''}.`:pend?`Seu vínculo com ${esc(e.vinculo.nome)} está aguardando o Forseti.`:'Você entrou com o Discord, mas ainda não escolheu o seu personagem.'}</p>
-     <p style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><a class="gold-btn" href="#guilda">GUILDA DOS AVENTUREIROS</a>${e&&!e.aventureiro&&!pend?'<button class="gold-btn" id="lg-v">ESCOLHER PERSONAGEM</button>':''}<button class="tbtn" id="lg-s">Sair</button></p>`;
+     <p style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><a class="gold-btn" href="#guilda">GUILDA DOS AVENTUREIROS</a>${e&&(e.admin||e.mestre||e.dono)?'<a class="gold-btn" href="#admin">CENTRAL DOS ADMINS</a>':''}${e&&!e.aventureiro&&!pend?'<button class="gold-btn" id="lg-v">ESCOLHER PERSONAGEM</button>':''}<button class="tbtn" id="lg-s">Sair</button></p>`;
   modal.innerHTML=`<div class="mbox" style="grid-template-columns:1fr;max-width:440px" role="dialog" aria-modal="true" aria-label="Conta"><div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">Acesso</div><h3>${CONTA.logado?'Sua conta':'Entrar'}</h3>${corpo}</div></div>`;modal.hidden=false;
   const on=(q,f)=>{const b=modal.querySelector(q);if(b)b.onclick=f;};
   on('#lg-d',CONTA.entrar);on('#lg-v',()=>GUILDA.abrirVinculo());on('#lg-s',async()=>{await CONTA.sair();closeModal();});
