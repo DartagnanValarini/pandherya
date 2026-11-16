@@ -1487,14 +1487,28 @@ const GUILDA=(()=>{
  /* vincular uma conta do Discord a um aventureiro (usado na aba Pessoas) */
  async function escolherAventureiro(user,nome){
   await carregarAvs();let q='';
-  const draw=()=>{const f=AVF.filter(a=>a.nome.toLowerCase().includes(q.toLowerCase()));
+  /* além do livro da Guilda, oferece os personagens do compêndio do site que ainda não estão na Guilda */
+  const base=t=>String(t||'').split(',')[0].normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const naGuilda=new Set(AVF.map(a=>base(a.nome)));
+  const doSite=DATA.personagens.filter(p=>!naGuilda.has(base(p.n))).map(p=>({site:true,nome:String(p.n).split(',')[0].trim(),img:p.img}));
+  const vincular=async id=>{await CONTA.rpc('guilda_vincular_conta',{p_user:user,p_aventureiro:id});closeModal();toast('Personagem vinculado.');if(window.__admAbrir)window.__admAbrir();};
+  const cadastrarEVincular=async n=>{const id=await CONTA.rpc('guilda_cadastrar',{p:{nome:n,classe:'E'}});await load();await vincular(id);};
+  const draw=()=>{const t=q.toLowerCase(),f=AVF.filter(a=>a.nome.toLowerCase().includes(t)),fs=doSite.filter(p=>p.nome.toLowerCase().includes(t));
+   const exato=q.trim()&&!AVF.some(a=>base(a.nome)===base(q))&&!doSite.some(p=>base(p.nome)===base(q));
    modal.innerHTML=`<div class="mbox gbox" role="dialog" aria-modal="true" aria-label="Vincular personagem"><div class="mtext"><button class="mclose" id="mclose">Fechar</button><div class="kicker">Vincular personagem</div><h3>${esc(nome)}</h3>
-    <label class="search" style="margin-top:12px">${svg('search')}<input id="ev-q" placeholder="Buscar aventureiro" aria-label="Buscar aventureiro" value="${esc(q)}"></label>
-    <div class="g-chars">${f.map(a=>`<button type="button" data-ev="${a.id}"${a.vinculado?' disabled style="opacity:.45"':''}><img src="${EMB(a.classe)}" alt="">${esc(a.nome)}<small>${a.vinculado?'já tem dono':T(a.classe).n}</small></button>`).join('')}</div></div></div>`;
+    <label class="search" style="margin-top:12px">${svg('search')}<input id="ev-q" placeholder="Buscar personagem" aria-label="Buscar personagem" value="${esc(q)}"></label>
+    <div class="g-chars">${f.map(a=>`<button type="button" data-ev="${a.id}"${a.vinculado?' disabled style="opacity:.45"':''}><img src="${EMB(a.classe)}" alt="">${esc(a.nome)}<small>${a.vinculado?'já tem dono':`Guilda · ${T(a.classe).n}`}</small></button>`).join('')}
+     ${fs.map(p=>`<button type="button" data-es="${esc(p.nome)}"><img src="${esc(p.img||EMB('E'))}" alt="" style="border-radius:4px;object-fit:cover">${esc(p.nome)}<small>do site · entra na Guilda como Estanho</small></button>`).join('')}
+     ${exato?`<button type="button" data-es="${esc(q.trim())}"><img src="${EMB('E')}" alt="">Cadastrar “${esc(q.trim())}” na Guilda<small>novo · Estanho</small></button>`:''}
+     ${!f.length&&!fs.length&&!exato?'<p style="color:var(--faint);padding:10px 12px;margin:0">Digite o nome do personagem.</p>':''}</div>
+    <p class="fmsg err" id="ev-m"></p></div></div>`;
    modal.hidden=false;const qi=modal.querySelector('#ev-q');qi.oninput=e=>{q=e.target.value;draw();const n=modal.querySelector('#ev-q');n.focus();n.setSelectionRange(n.value.length,n.value.length);};
-   modal.querySelectorAll('[data-ev]').forEach(b=>b.onclick=async()=>{try{await CONTA.rpc('guilda_vincular_conta',{p_user:user,p_aventureiro:+b.dataset.ev});closeModal();toast('Personagem vinculado.');if(window.__admAbrir)window.__admAbrir();}catch(e){toast(e.message);}});};
+   const erro=e=>{modal.querySelector('#ev-m').textContent=e.message;};
+   modal.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>vincular(+b.dataset.ev).catch(erro));
+   modal.querySelectorAll('[data-es]').forEach(b=>b.onclick=()=>{b.disabled=true;cadastrarEVincular(b.dataset.es).catch(e=>{b.disabled=false;erro(e);});});};
   draw();
  }
+
 
  /* ---------- abas e montagem ---------- */
  function render(){
