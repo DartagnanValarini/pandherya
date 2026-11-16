@@ -514,6 +514,10 @@ footer .vis{display:inline-flex;align-items:center;gap:5px}
 <div class="modal" id="modal" hidden></div>
 
 <script>
+const cap=t=>t.charAt(0).toLocaleUpperCase('pt-BR')+t.slice(1);
+const normClasse=t=>{const v=[];String(t||'').split(/\s*(?:,|;|\/|\||\+|&|\s+e\s+)\s*/i).map(x=>cap(x.trim())).filter(Boolean).forEach(x=>{if(!v.some(y=>y.toLowerCase()===x.toLowerCase()))v.push(x);});return v.join(', ');};
+const erroRaca=t=>/[,;\/|+&]|\s(e|ou|com)\s/i.test(String(t||'').trim())?'Raça: escolha uma só. Se o personagem é mistura de duas, dê um nome para essa raça nova (ex.: Meio-elfo).':'';
+const fmtClasse=t=>String(t||'').split(/\s*[,/]\s*/).filter(Boolean).join(' • ');
 (async()=>{
 /* =========================================================
    CONFIGURAÇÃO — troque aqui antes de lançar
@@ -845,7 +849,7 @@ function page(id,icon,title,sub,body){
   stage.appendChild(s);views[id]=s;return s;
 }
 function subOf(cat,it){
-  if(cat==='personagens'){const c=it.cla&&CLAN[it.cla];return [it.t,it.s||(c?`Membro ${/^(Clã|O )/.test(c.n)?'d'+(c.n.startsWith('O ')?'o '+c.n.slice(2):'o '+c.n):'de '+c.n}`:'Sem clã registrado')];}
+  if(cat==='personagens'){const c=it.cla&&CLAN[it.cla];return [fmtClasse(it.t),it.s||(c?`Membro ${/^(Clã|O )/.test(c.n)?'d'+(c.n.startsWith('O ')?'o '+c.n.slice(2):'o '+c.n):'de '+c.n}`:'Sem clã registrado')];}
   if(cat==='ordens'){const m=DATA.personagens.filter(p=>p.cla===it.id).length;return [it.t,m?`${m} membro${m===1?'':'s'} registrado${m===1?'':'s'}`:'Membros em breve'];}
   return [it.t,(it.txt&&it.txt[0])||''];
 }
@@ -1585,8 +1589,8 @@ const FORM={
  personagem:[
   ['n','Nome',1,'text',40,'Como seu personagem é chamado','Nome do personagem como ele é conhecido em Pandherya.<br><i>Ex.: Sigurdr, Yume Eir, Aryya.</i>'],
   ['ep','Epíteto ou ocupação',0,'text',60,'Ex.: O Arauto do Caos, Ferreiro da vila','Opcional. Um título, apelido ou ofício que acompanha o nome.<br><i>Ex.: O Jarl do Clã do Corvo, A Curandeira de Pandherya.</i>'],
-  ['t','Classe',1,'text',30,'Ex.: Guerreiro, Maga, Curandeira','Classe ou profissão do personagem.<br><i>Ex.: Guerreiro, Maga, Arqueiro, Curandeira, Ferreiro.</i>'],
-  ['s','Raça',1,'text',80,'Ex.: Humano, elfo, anão, etc','A raça do personagem.<br><i>Ex.: Humano, elfo, anão, meio-gigante.</i>'],
+  ['t','Classe',1,'text',60,'Uma ou mais, separadas por vírgula. Ex.: Assassino, Guerreiro','A classe do personagem, uma das básicas: Guerreiro, Assassino, Arqueiro, Mago, Curandeiro, Ferreiro...<br>Se tiver mais de uma, separe com vírgula.<br><i>Ex.: Assassino, Guerreiro</i>'],
+  ['s','Raça',1,'text',40,'Uma raça só. Ex.: Humano, Elfo, Anão','A raça do personagem, <b>uma só</b>.<br>Se ele é mistura de duas, isso vira uma raça nova com nome próprio, em vez de juntar as duas.<br><i>Ex.: Humano, Elfo, Anão, Meio-gigante.</i>'],
   ['cla','Seu clã',0,'cla',0,'','Guilda ou clã, se houver. Se o seu não estiver na lista, escolha <b>Outro</b> e escreva o nome. Sem clã também vale.'],
   ['cla_outro','Nome do clã',0,'text',60,'Se o seu clã não está na lista',''],
   ['txt','História',1,'lore',REGRAS.loreMax,'Separe os parágrafos com uma linha em branco',`Conte a trajetória do personagem de forma envolvente e coerente. Entre <b>${REGRAS.loreMin}</b> e <b>${REGRAS.loreMax.toLocaleString('pt-BR')}</b> caracteres, contando espaços e pontuação.<br><br>Estrutura recomendada:<br>• <b>Origem:</b> quem é, de onde vem e seu passado.<br>• <b>Personalidade:</b> virtudes, defeitos e motivações.<br>• <b>Jornada:</b> acontecimentos marcantes, conquistas e perdas.<br>• <b>Presente:</b> sua situação atual em Pandherya e seus objetivos.`],
@@ -1611,9 +1615,15 @@ function fieldsHTML(tipo,d={},pre='',admin=false){
     return `<div class="${cls}"${hide} data-wrap="${k}"><span><label for="${id}">${label}</label>${req?' <b>*</b>':''}${infoBtn(info)}</span>${inp}${hint?`<small>${hint}</small>`:''}</div>`;
   }).join('');
 }
+/* classe: uma ou mais, guardadas como "Assassino, Guerreiro" (aceita / ; | + e "e" como separador) */
+/* raça: uma só. Mistura de duas vira uma raça nova com nome próprio (ex.: Meio-elfo) */
+/* na tela: "Assassino • Guerreiro" */
 function readFields(root){const d={};root.querySelectorAll('[data-k]').forEach(el=>{const v=el.value.trim();if(v)d[el.dataset.k]=v;});
+  if(d.t&&root.querySelector('[data-k="s"]'))d.t=normClasse(d.t);if(d.s)d.s=cap(d.s.replace(/\s+/g,' '));
   if(d.cla==='outro'){delete d.cla;}else delete d.cla_outro;return d;}
-function wireCla(root){const sel=root.querySelector('[data-k="cla"]'),w=root.querySelector('[data-wrap="cla_outro"]');if(!sel||!w)return;
+function wireRaca(root){const i=root.querySelector('[data-k="s"]');if(!i)return;const sm=i.nextElementSibling,orig=sm?sm.textContent:'';
+  const f=()=>{const e=erroRaca(i.value);if(sm){sm.textContent=e||orig;sm.style.color=e?'var(--blood)':'';}i.setAttribute('aria-invalid',e?'true':'false');};i.addEventListener('input',f);f();}
+function wireCla(root){wireRaca(root);const sel=root.querySelector('[data-k="cla"]'),w=root.querySelector('[data-wrap="cla_outro"]');if(!sel||!w)return;
   const f=()=>{w.hidden=sel.value!=='outro';};sel.addEventListener('change',f);f();}
 function wireCount(root){root.querySelectorAll('[data-cnt]').forEach(c=>{const ta=c.previousElementSibling;
   const f=()=>{const n=ta.value.trim().length;c.textContent=`${n.toLocaleString('pt-BR')} / ${REGRAS.loreMax.toLocaleString('pt-BR')} caracteres (mínimo ${REGRAS.loreMin})`;
@@ -1710,6 +1720,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
    const foto=$('sf-foto').files[0],audio=tipo==='personagem'?$('sf-audio').files[0]:null;
    if(!foto)falta.push(tipo==='cla'?'Brasão do clã':'Imagem do personagem');
    if(falta.length)return msg('Preencha: '+falta.join(', ')+'.','err');
+   if(tipo==='personagem'&&erroRaca(d.s))return msg(erroRaca(d.s),'err');
    await checkNome();if(nomeErr)return msg(nomeErr,'err');
    if(tipo==='personagem'){const n=(d.txt||'').length;
      if(n<REGRAS.loreMin)return msg(`A história precisa ter pelo menos ${REGRAS.loreMin} caracteres (está com ${n}).`,'err');
@@ -1963,6 +1974,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
            msg('Texto original restaurado. Atualizando...','ok');setTimeout(()=>location.reload(),900);}catch(e){orig.disabled=false;msg(e.message,'err');}};
        box.querySelector('[data-save]').onclick=async ev=>{const nd=readFields(box.querySelector('.fgrid'));
          if(!nd.n)return msg('O nome não pode ficar vazio.','err');
+         if(cat==='personagens'&&erroRaca(nd.s))return msg(erroRaca(nd.s),'err');
          {const r=await nomeEmUso(cat,nd.n,com?id:id).catch(()=>null);if(r)return msg(avisoNome(cat,r),'err');}
          const nf=box.querySelector('[data-nf]').files[0],na=box.querySelector('[data-na]')?.files[0],rma=box.querySelector('[data-rma]')?.checked&&!na;
          if(nf&&!/^image\/(png|jpeg|webp)$/.test(nf.type))return msg('A imagem precisa ser PNG, JPG ou WEBP.','err');
@@ -2027,7 +2039,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
  async function acao(act,e,el){
    const m=el.querySelector('[data-msg]'),say=(t,c='')=>{m.textContent=t;m.className='fmsg '+c;};
    const g=el.querySelector('.oc-edit .fgrid'),d=g?readFields(g):Object.assign({},e.dados||{});
-   if(!['recusar','apagar','tirar','arquivar'].includes(act)){const falta=FORM[e.tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);if(falta.length)return say('Preencha: '+falta.join(', ')+'.','err');}
+   if(!['recusar','apagar','tirar','arquivar'].includes(act)){const falta=FORM[e.tipo].filter(f=>f[2]&&!d[f[0]]).map(f=>f[1]);if(falta.length)return say('Preencha: '+falta.join(', ')+'.','err');if(e.tipo==='personagem'&&erroRaca(d.s))return say(erroRaca(d.s),'err');}
    if(act==='aprovar'||act==='salvar'){const r=await nomeEmUso(e.tipo,d.n,'u-'+e.id).catch(()=>null);if(r)return say(avisoNome(e.tipo,r),'err');}
    if(act==='apagar'&&!confirmar(el,'Apagar este envio de vez? Não dá para desfazer.'))return;
    if(act==='tirar'&&!confirmar(el,'Tirar esta história do site? Ela vai para Recusados e os arquivos públicos são apagados.'))return;
