@@ -550,11 +550,22 @@ const CONTA=(()=>{
     erro=(h.get('error_description')||'Não foi possível entrar com o Discord.').replace(/\+/g,' ');
     history.replaceState(null,'',location.pathname+location.search+volta());
   }
-  async function renovar(){
-    const r=await fetch(`${CONFIG.dbUrl}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ses.refresh_token})});
-    if(!r.ok){ses=null;eu=null;save();emit();throw new Error('Sua sessão expirou. Entre com o Discord de novo.');}
-    const j=await r.json();ses={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+j.expires_in};save();
+  /* renova a sessão uma vez só, mesmo com várias chamadas ou várias abas abertas ao mesmo tempo
+     (renovar duas vezes com o mesmo código faz o Supabase derrubar o login por segurança) */
+  let renovando=null;
+  function renovar(){
+    if(renovando)return renovando;
+    const fazer=async()=>{
+      try{const s2=JSON.parse(localStorage.getItem(K)||'null');if(s2&&s2.refresh_token!==ses.refresh_token&&s2.expires_at>Date.now()/1000+60){ses=s2;return;}}catch(e){}
+      const r=await fetch(`${CONFIG.dbUrl}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ses.refresh_token})});
+      if(!r.ok){ses=null;eu=null;save();emit();throw new Error('Sua sessão expirou. Entre com o Discord de novo.');}
+      const j=await r.json();ses={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+j.expires_in};save();
+    };
+    renovando=(navigator.locks?navigator.locks.request('pdy-renovar',fazer):fazer()).finally(()=>{renovando=null;});
+    return renovando;
   }
+  /* login ou saída em outra aba vale para esta também */
+  addEventListener('storage',e=>{if(e.key!==K)return;const antes=!!ses;try{ses=JSON.parse(e.newValue||'null');}catch(_){ses=null;}if(!ses){eu=null;emit();}else if(!antes)carregar();});
   async function H(){if(!ses)return null;if(Date.now()/1000>ses.expires_at-60)await renovar();return {apikey:CONFIG.dbKey,Authorization:'Bearer '+ses.access_token};}
   async function rpc(fn,args={}){
     const hd=await H();if(!hd)throw new Error('Entre com o Discord primeiro.');
@@ -1112,7 +1123,7 @@ const GUILDA=(()=>{
     DB.get('guilda_contratos',sel+'&status=neq.aberto&order=encerrado_em.desc&limit=40')]);
    S.av=av;S.cs=ab.concat(enc).map(norm);S.ok=true;
   }catch(e){$('#g-board').innerHTML='<p class="g-load">Não foi possível carregar os contratos agora.</p>';return;}
-  S.links=[];S.sug=[];if(mestre()){try{S.links=await CONTA.rpc('guilda_pedidos_discord')||[];}catch(e){try{S.links=await CONTA.rpc('guilda_vinculos_pendentes')||[];}catch(_){S.links=[];}}try{S.sug=await CONTA.rpc('guilda_sugestoes_lista')||[];}catch(e){}}
+  S.links=[];S.sug=[];if(mestre()){try{S.links=await CONTA.rpc('guilda_pedidos_discord')||[];}catch(e){S.links=[];}try{S.sug=await CONTA.rpc('guilda_sugestoes_lista')||[];}catch(e){}}
   render();
  }
 
@@ -1440,13 +1451,16 @@ const GUILDA=(()=>{
    ${lista.map(a=>{const t=T(a.classe);return `<tr><td><div class="g-adv"><img src="${EMB(t.k)}" alt=""><div><b>${esc(a.nome)}</b>${a.fora_ranking?' <span class="g-you">MESTRE</span>':''}<small style="color:${t.c}">${t.k} · ${t.n}${a.obs?` · <span style="color:var(--faint)">${esc(a.obs)}</span>`:''}</small></div></div></td>
      <td class="num">${a.missoes}</td><td class="num">${a.pontos.toLocaleString('pt-BR')}</td><td class="num">${a.falhas||'–'}</td>
      <td>${a.vinculado?`<span style="display:inline-flex;gap:8px;align-items:center">${a.avatar?`<img src="${esc(a.avatar)}" alt="" style="width:24px;height:24px;border-radius:50%">`:''}@${esc(a.usuario||'?')}</span>`:a.discord_usuario?`<span style="color:var(--muted)">@${esc(a.discord_usuario)}</span><br><small style="color:var(--faint)">vincula no 1º login</small>`:'<span style="color:var(--faint)">–</span>'}</td>
-     <td style="white-space:nowrap"><button class="tbtn" data-ave="${a.id}">Editar</button> <button class="tbtn" data-avc="${a.id}">Classe</button>${a.vinculado&&a.user_id?` <button class="tbtn g-no-btn" data-avd="${a.id}">Desvincular</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="6" style="color:var(--faint)">Ninguém encontrado.</td></tr>'}
+     <td style="white-space:nowrap"><button class="tbtn" data-ave="${a.id}">Editar</button> <button class="tbtn" data-avc="${a.id}">Classe</button>${a.vinculado&&a.user_id?` <button class="tbtn g-no-btn" data-avd="${a.id}">Desvincular</button>`:''}${a.fora_ranking?'':` <button class="tbtn g-no-btn" data-ava="${a.id}">Apagar</button>`}</td></tr>`;}).join('')||'<tr><td colspan="6" style="color:var(--faint)">Ninguém encontrado.</td></tr>'}
    </tbody></table></div>`;
   el.querySelector('#av-novo').onclick=()=>abrirAvForm(null);
   const q=el.querySelector('#av-q');q.oninput=e=>{avQ=e.target.value;drawAvs(el);const n2=el.querySelector('#av-q');n2.focus();n2.setSelectionRange(n2.value.length,n2.value.length);};
   el.querySelectorAll('[data-avf]').forEach(b=>b.onclick=()=>{avF=b.dataset.avf;drawAvs(el);});
   el.querySelectorAll('[data-ave]').forEach(b=>b.onclick=()=>abrirAvForm(AVF.find(a=>a.id===+b.dataset.ave)));
   el.querySelectorAll('[data-avc]').forEach(b=>b.onclick=()=>abrirClasse(+b.dataset.avc));
+  el.querySelectorAll('[data-ava]').forEach(b=>b.onclick=async()=>{const a=AVF.find(x=>x.id===+b.dataset.ava);
+    if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar';toast(`Apagar ${a.nome} tira da Guilda com todo o histórico (missões, pontos, participações).${a.vinculado?' A conta do Discord continua, só fica sem personagem.':''} Clique em Confirmar.`);return;}
+    try{await CONTA.rpc('guilda_apagar_aventureiro',{p_id:a.id});toast(`${a.nome} foi apagado da Guilda.`);await atualizarCentral();}catch(e){toast(e.message);}});
   el.querySelectorAll('[data-avd]').forEach(b=>b.onclick=async()=>{if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar';return;}const a=AVF.find(x=>x.id===+b.dataset.avd);
     try{await CONTA.rpc('guilda_vincular_conta',{p_user:a.user_id,p_aventureiro:null});toast(`${a.nome} foi desvinculado do Discord.`);await atualizarCentral();}catch(e){toast(e.message);}});
  }
@@ -1834,6 +1848,7 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
        <button class="tbtn" data-papel="mestre" data-d="${esc(u.discord_id)}" data-on="${u.mestre?1:0}" style="${u.mestre?'color:var(--gold);border-color:var(--gold-dim)':''}">${u.mestre?'Mestre ✓':'Mestre'}</button>
        <button class="tbtn" data-vin="${u.user_id}" data-nome="${esc(u.nome||u.usuario||'')}">${u.personagem?'Trocar personagem':'Vincular personagem'}</button>
        ${u.personagem?`<button class="tbtn" style="color:var(--blood)" data-desv="${u.user_id}">Desvincular</button>`:''}
+       ${u.voce||u.dono?'':`<button class="tbtn" style="color:var(--blood)" data-apagar="${u.user_id}">Apagar conta</button>`}
        </div><p class="fmsg" data-msg style="margin:6px 0 0"></p></div>`).join('')||'<p class="fmsg">Ninguém encontrado.</p>'}</div>`;
     const qi=list.querySelector('#us-q');qi.oninput=e=>{q=e.target.value;draw();const n=list.querySelector('#us-q');n.focus();n.setSelectionRange(n.value.length,n.value.length);};
     const msg=b=>b.closest('.oc-item').querySelector('[data-msg]');
@@ -1843,6 +1858,9 @@ function abrirGuia(tipo){if(tipo==='cla'){modal.innerHTML=`<div class="mbox guia
       b.disabled=true;try{await rpc('central_papel',{p_discord:b.dataset.d,p_papel:b.dataset.papel,p_ativo:liga});const u=us.find(x=>x.discord_id===b.dataset.d);u[b.dataset.papel]=liga;draw();}
       catch(x){b.disabled=false;msg(b).textContent=x.message;msg(b).className='fmsg err';}});
     list.querySelectorAll('[data-vin]').forEach(b=>b.onclick=()=>GUILDA.escolherAventureiro(b.dataset.vin,b.dataset.nome));
+    list.querySelectorAll('[data-apagar]').forEach(b=>b.onclick=async()=>{const u=us.find(x=>x.user_id===b.dataset.apagar);
+      if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar: apagar';msg(b).textContent=`Apaga o login de @${u.usuario||'?'} e tira Admin e Mestre.${u.personagem?` O personagem ${u.personagem.nome} continua na Guilda, sem dono.`:''} A pessoa pode entrar de novo depois, como conta nova.`;msg(b).className='fmsg';return;}
+      b.disabled=true;try{await rpc('central_apagar_conta',{p_user:u.user_id});us=us.filter(x=>x.user_id!==u.user_id);draw();}catch(x){b.disabled=false;msg(b).textContent=x.message;msg(b).className='fmsg err';}});
     list.querySelectorAll('[data-desv]').forEach(b=>b.onclick=async()=>{if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar';return;}
       b.disabled=true;try{await rpc('guilda_vincular_conta',{p_user:b.dataset.desv,p_aventureiro:null});usuariosAdm(list);}catch(x){b.disabled=false;msg(b).textContent=x.message;msg(b).className='fmsg err';}});
    };
