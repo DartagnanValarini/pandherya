@@ -367,6 +367,59 @@ footer .vis{display:inline-flex;align-items:center;gap:5px}
 .g-card:focus-visible{outline:2px solid var(--gold-lt);outline-offset:3px}
 .g-card::before{content:"";position:absolute;top:8px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#c9b38a,#4a3a26 70%);box-shadow:0 2px 3px rgba(0,0,0,.5)}
 .g-card.done{opacity:.75}
+/* Missões especiais: moldura com aura, borda de energia girando, brasão e runas (só CSS, sem imagens) */
+@property --g-ang{syntax:'<angle>';inherits:false;initial-value:0deg}
+.g-esp{--c1:#a855f7;--c2:#ecd9ff;--c3:#4c1d95;--aura:rgba(168,85,247,.6);position:relative;isolation:isolate;margin-top:26px;transform:rotate(var(--r,0deg));transition:transform .15s}
+.g-esp:hover,.g-esp:focus-within{transform:rotate(0) translateY(-3px)}
+.g-esp.e-lendaria{--c1:#f2b93b;--c2:#fff1c2;--c3:#7a4b05;--aura:rgba(242,185,59,.5)}
+.g-esp.e-ragnarok{--c1:#ef3b3b;--c2:#ffd0c4;--c3:#5c0b0b;--aura:rgba(239,59,59,.55)}
+.g-esp::before{content:"";position:absolute;inset:-20px;z-index:-1;border-radius:32px;background:radial-gradient(closest-side,var(--aura),transparent);filter:blur(18px);animation:gEspAura 3.2s ease-in-out infinite}
+.g-esp::after{content:"";position:absolute;inset:-46px;z-index:-2;border-radius:50%;background:radial-gradient(closest-side,var(--aura),transparent 70%);opacity:.35;filter:blur(28px);animation:gEspAura 3.2s ease-in-out infinite reverse}
+.g-esp.e-ragnarok::before{animation:gEspAura 2.4s ease-in-out infinite,gEspFogo 1.6s steps(1) infinite}
+@keyframes gEspAura{0%,100%{opacity:.55;transform:scale(.97)}50%{opacity:1;transform:scale(1.03)}}
+@keyframes gEspFogo{33%{filter:blur(22px) brightness(1.2)}66%{filter:blur(16px) brightness(.9)}}
+.g-esp-frame{position:relative;height:100%;border-radius:16px;padding:3px;background:conic-gradient(from var(--g-ang),var(--c3),var(--c1),var(--c2),var(--c1),var(--c3),var(--c1),var(--c2),var(--c1),var(--c3));animation:gEspGira 5s linear infinite;box-shadow:0 0 18px var(--aura),0 0 2px var(--c2)}
+.e-lendaria .g-esp-frame{animation-duration:7s}
+@keyframes gEspGira{to{--g-ang:360deg}}
+.g-esp-metal{position:relative;height:100%;border-radius:13px;padding:7px;background:linear-gradient(160deg,#2c2638,#15111d 50%,#241e2e);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 0 12px rgba(0,0,0,.8);display:flex}
+.g-esp .g-card{flex:1;transform:none!important;border-radius:9px;overflow:hidden;padding-top:30px;box-shadow:inset 0 0 28px rgba(80,50,15,.5),inset 0 0 0 1px rgba(80,50,15,.35)}
+.g-esp .g-card::before{display:none}
+.g-esp .g-card:focus-visible{outline-offset:6px}
+.g-esp .g-hd{padding-right:16px}
+.e-lendaria .g-card::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 38%,rgba(255,250,220,.55) 50%,transparent 62%);background-size:260% 100%;animation:gEspBrilho 4.5s ease-in-out infinite;mix-blend-mode:soft-light}
+@keyframes gEspBrilho{0%{background-position:130% 0}60%,100%{background-position:-130% 0}}
+.g-esp-c{position:absolute;width:22px;height:22px;border:2px solid var(--c1);z-index:3;filter:drop-shadow(0 0 4px var(--c1));pointer-events:none}
+.g-esp-c::after{content:"";position:absolute;width:5px;height:5px;background:var(--c2);transform:rotate(45deg)}
+.g-esp-c.tl{top:2px;left:2px;border-right:0;border-bottom:0;border-top-left-radius:10px}.g-esp-c.tl::after{top:4px;left:4px}
+.g-esp-c.tr{top:2px;right:2px;border-left:0;border-bottom:0;border-top-right-radius:10px}.g-esp-c.tr::after{top:4px;right:4px}
+.g-esp-c.bl{bottom:2px;left:2px;border-right:0;border-top:0;border-bottom-left-radius:10px}.g-esp-c.bl::after{bottom:4px;left:4px}
+.g-esp-c.br{bottom:2px;right:2px;border-left:0;border-top:0;border-bottom-right-radius:10px}.g-esp-c.br::after{bottom:4px;right:4px}
+.e-ragnarok .g-esp-c{width:0;height:0;border:0}.e-ragnarok .g-esp-c::after{display:none}
+.e-ragnarok .g-esp-c::before{content:"";position:absolute;width:30px;height:30px;background:linear-gradient(135deg,var(--c2),var(--c1) 50%,var(--c3));clip-path:polygon(0 0,100% 22%,34% 34%,22% 100%)}
+.e-ragnarok .g-esp-c.tl,.e-ragnarok .g-esp-c.tr{top:0}.e-ragnarok .g-esp-c.bl,.e-ragnarok .g-esp-c.br{bottom:0}.e-ragnarok .g-esp-c.tl,.e-ragnarok .g-esp-c.bl{left:0}.e-ragnarok .g-esp-c.tr,.e-ragnarok .g-esp-c.br{right:0}
+.e-ragnarok .g-esp-c.tl::before{top:-9px;left:-9px}.e-ragnarok .g-esp-c.tr::before{top:-9px;right:-9px;transform:scaleX(-1)}.e-ragnarok .g-esp-c.bl::before{bottom:-9px;left:-9px;transform:scaleY(-1)}.e-ragnarok .g-esp-c.br::before{bottom:-9px;right:-9px;transform:scale(-1,-1)}
+.g-esp-crest{position:absolute;top:-34px;left:50%;margin-left:-35px;width:70px;height:70px;z-index:5;display:grid;place-items:center;pointer-events:none}
+.g-esp-crest i{width:44px;height:44px;transform:rotate(45deg);border-radius:6px;display:grid;place-items:center;background:linear-gradient(135deg,var(--c2),var(--c1) 45%,var(--c3));border:2px solid #1a1422;box-shadow:0 0 0 2px var(--c1),0 0 22px var(--c1),inset 0 0 12px rgba(255,255,255,.35);animation:gEspGema 2.4s ease-in-out infinite}
+.g-esp-crest i b{transform:rotate(-45deg);font-size:22px;color:#fff;font-weight:700;font-style:normal;text-shadow:0 0 8px var(--c2),0 0 16px var(--c1)}
+.e-lendaria .g-esp-crest i{border-radius:50%;transform:none}.e-lendaria .g-esp-crest i b{transform:none}
+@keyframes gEspGema{50%{box-shadow:0 0 0 2px var(--c2),0 0 36px var(--c1),inset 0 0 16px rgba(255,255,255,.5)}}
+.g-esp-ring{position:absolute;top:-56px;left:50%;width:112px;height:112px;margin-left:-56px;z-index:4;pointer-events:none;animation:gEspAnel 18s linear infinite}
+.g-esp-ring text{font-size:11px;letter-spacing:3px;fill:var(--c2)}.g-esp-ring circle{fill:none;stroke:var(--c1);stroke-width:1;opacity:.5}
+@keyframes gEspAnel{to{transform:rotate(360deg)}}
+.g-esp-fita{position:absolute;top:19px;right:-46px;width:150px;transform:rotate(45deg);text-align:center;padding:3px 0;z-index:2;font:700 9px/1.4 var(--display);letter-spacing:.14em;color:#fff;background:linear-gradient(90deg,var(--c3),var(--c1),var(--c3));box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.g-esp-runas{margin-top:2px;padding:7px 0;text-align:center;border-radius:6px;background:linear-gradient(#1c1624,#0f0b14);font-size:15px;letter-spacing:.55em;text-indent:.55em;color:var(--c2);text-shadow:0 0 6px var(--c1),0 0 14px var(--c1);box-shadow:inset 0 0 10px #000,0 0 0 1px var(--c3);animation:gEspRuna 4s ease-in-out infinite}
+@keyframes gEspRuna{0%,100%{opacity:.85}45%{opacity:1}50%{opacity:.6}55%{opacity:1}}
+.g-tag.esp{background:linear-gradient(90deg,var(--c3),var(--c1));border-color:var(--c3);color:#fff;font-weight:700;box-shadow:0 0 8px var(--aura)}
+.g-esp .g-ft{border-top-style:solid;border-image:linear-gradient(90deg,transparent,#8a6d3b 20%,#8a6d3b 80%,transparent) 1}
+.g-esp .g-prog i:first-child{background:linear-gradient(90deg,var(--c3),var(--c1),var(--c2));box-shadow:0 0 8px var(--c1)}
+.g-esp-fx{position:absolute;inset:0;pointer-events:none;z-index:6}
+.g-esp-fx span{position:absolute;bottom:10px;width:var(--s);height:var(--s);border-radius:50%;background:var(--c2);box-shadow:0 0 6px var(--c1),0 0 12px var(--c1);opacity:0;animation:gEspSobe var(--d) linear var(--dl) infinite}
+.e-ragnarok .g-esp-fx span{border-radius:1px;background:#ffb38a;box-shadow:0 0 6px #ff5a1f,0 0 12px #ff2a00}
+@keyframes gEspSobe{0%{transform:translate(0,0);opacity:0}12%{opacity:1}100%{transform:translate(var(--dx),-420px);opacity:0}}
+.g-esp>.g-flag{z-index:7;top:-10px}
+.g-esp-kick{display:inline-block;font:700 10px/1 var(--display);letter-spacing:.14em;padding:4px 8px;border-radius:4px;color:#fff;background:linear-gradient(90deg,var(--c3),var(--c1));box-shadow:0 0 10px var(--aura);vertical-align:middle}
+.g-esp-kick.e-arcana{--c1:#a855f7;--c3:#4c1d95;--aura:rgba(168,85,247,.6)}.g-esp-kick.e-lendaria{--c1:#f2b93b;--c3:#7a4b05;--aura:rgba(242,185,59,.5)}.g-esp-kick.e-ragnarok{--c1:#ef3b3b;--c3:#5c0b0b;--aura:rgba(239,59,59,.55)}
+@media (prefers-reduced-motion:reduce){.g-esp,.g-esp *,.g-esp::before,.g-esp::after,.g-esp *::before,.g-esp *::after{animation:none!important}.g-esp{transform:none}}
 .g-hd{display:flex;gap:12px;align-items:flex-start}
 .g-hd img{width:46px;flex:none;margin-top:2px}
 .g-no{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6a5640}
@@ -1076,6 +1129,18 @@ const GUILDA=(()=>{
  const BIOMAS=['Prado','Floresta Negra','Pântano','Montanha','Planície','Mistlands','Ashlands','Deep North','Oceano'];
  const TIPOS=['Coleta','Caça','Extermínio','Exploração','Escolta','Resgate','Transporte','Defesa','Investigação','Especial'];
  const ST={aberto:'Aberto',andamento:'Em andamento',conferencia:'A conferir',honrada:'Honrada',fracassada:'Fracassada'};
+ /* missões especiais: tipo -> nome, runa do brasão e nome escrito em runas (Elder Futhark) */
+ const ESP={arcana:{n:'Arcana',runa:'ᛟ',txt:'ᚨᚱᚲᚨᚾᚨ'},lendaria:{n:'Lendária',runa:'ᚱ',txt:'ᛚᛖᚾᛞᚨᚱᛁᚨ'},ragnarok:{n:'Ragnarök',runa:'ᛏ',txt:'ᚱᚨᚷᚾᚨᚱᛟᚲ'}};
+ const espTag=c=>ESP[c.especial]?`<span class="g-tag esp">${c.especial==='lendaria'?'★':c.especial==='ragnarok'?'🜂':'✦'} ${ESP[c.especial].n}</span>`:'';
+ const espRunas=c=>ESP[c.especial]?`<div class="g-esp-runas" aria-hidden="true">${ESP[c.especial].txt}</div>`:'';
+ /* envolve o card (button.g-card) na moldura especial; as bandeirinhas ficam fora do pergaminho */
+ function espWrap(c,card,r,flags=''){
+  const e=ESP[c.especial];if(!e)return card.replace('<!--flags-->',flags);
+  const fx=Array.from({length:14},()=>`<span style="left:${(Math.random()*100).toFixed(0)}%;--s:${(2+Math.random()*3).toFixed(1)}px;--d:${(3.5+Math.random()*4).toFixed(2)}s;--dl:${(-Math.random()*7).toFixed(2)}s;--dx:${((Math.random()-.5)*60).toFixed(0)}px"></span>`).join('');
+  const ring=c.especial==='ragnarok'?`<svg class="g-esp-ring" viewBox="0 0 112 112" aria-hidden="true"><defs><path id="gr${c.id}" d="M56,56 m-48,0 a48,48 0 1,1 96,0 a48,48 0 1,1 -96,0"/></defs><circle cx="56" cy="56" r="54"/><text><textPath href="#gr${c.id}">ᚱᚨᚷᚾᚨᚱᛟᚲ · ᚠᛖᚺᚢ · ᛒᛚᛟᛞ · ᚱᚨᚷᚾᚨᚱᛟᚲ · ᚠᛖᚺᚢ ·</textPath></text></svg>`:'';
+  return `<div class="g-esp e-${c.especial}" style="--r:${r}">${flags}<div class="g-esp-fx" aria-hidden="true">${fx}</div>${ring}<div class="g-esp-crest" aria-hidden="true"><i><b>${e.runa}</b></i></div>
+   <div class="g-esp-frame"><div class="g-esp-metal"><i class="g-esp-c tl"></i><i class="g-esp-c tr"></i><i class="g-esp-c bl"></i><i class="g-esp-c br"></i>${card.replace('<!--flags-->','')}</div></div></div>`;
+ }
  const S={sug:[],tab:'mural',filtro:'aberto',bioma:'',rank:'',tier:'',q:'',av:[],cs:[],links:[],ok:false};
 
  const s=page('guilda','crown','Guilda dos Aventureiros','Os contratos do Lox Bêbado e o Quadro de Honra dos aventureiros.',`
@@ -1119,7 +1184,7 @@ const GUILDA=(()=>{
  /* ---------- dados ---------- */
  async function load(){
   await fetch(`${CONFIG.dbUrl}/rest/v1/rpc/guilda_vencer`,{method:'POST',headers:{apikey:CONFIG.dbKey,'Content-Type':'application/json'},body:'{}'}).catch(()=>{});
-  const sel='select=id,titulo,tipo,bioma,rank,classe_rec,recompensa,vagas,descricao,contratante,status,criado_em,encerrado_em,prazo_horas,pontos_extra,iniciado_em,concluida_em,concluida_por,guilda_itens(id,nome,qtd,ordem),guilda_participantes(aventureiro_id,entrou_em,resultado,pontos),guilda_entregas(id,item_id,aventureiro_id,qtd,status,motivo,criado_em)';
+  const sel='select=id,titulo,tipo,bioma,rank,especial,classe_rec,recompensa,vagas,descricao,contratante,status,criado_em,encerrado_em,prazo_horas,pontos_extra,iniciado_em,concluida_em,concluida_por,guilda_itens(id,nome,qtd,ordem),guilda_participantes(aventureiro_id,entrou_em,resultado,pontos),guilda_entregas(id,item_id,aventureiro_id,qtd,status,motivo,criado_em)';
   try{
    const [av,ab,enc]=await Promise.all([
     DB.get('guilda_aventureiros','select=id,nome,classe,missoes,pontos,falhas,fora_ranking&ativo=is.true'),
@@ -1175,14 +1240,16 @@ const GUILDA=(()=>{
   const st=stOf(c),t=T(c.rank),tot=c.items.reduce((a,x)=>a+x.qtd,0);
   const cf=c.items.reduce((a,x)=>a+Math.min(soma(c,x.id,'confirmada'),x.qtd),0),pd=c.items.reduce((a,x)=>a+soma(c,x.id,'pendente'),0);
   const mine=meuId()&&c.people.includes(meuId()),np=c.entregas.filter(e=>e.status==='pendente').length;
-  return `<button class="g-card${c.status!=='aberto'?' done':''}" style="--r:${[-.8,.6,-.4,.9,-.6,.3][i%6]}deg" data-c="${c.id}">
-   ${mestre()&&np&&c.status==='aberto'?`<span class="g-flag">${np} p/ conferir</span>`:''}${mine?'<span class="g-flag mine">Você está nesse</span>':''}
+  const r=[-.8,.6,-.4,.9,-.6,.3][i%6]+'deg',esp=!!ESP[c.especial];
+  const flags=`${mestre()&&np&&c.status==='aberto'?`<span class="g-flag">${np} p/ conferir</span>`:''}${mine?'<span class="g-flag mine">Você está nesse</span>':''}`;
+  return espWrap(c,`<button class="g-card${c.status!=='aberto'?' done':''}" style="--r:${esp?'0deg':r}" data-c="${c.id}">
+   <!--flags-->${esp?`<span class="g-esp-fita">${ESP[c.especial].n.toUpperCase()}</span>`:''}
    <div class="g-hd"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="g-no">Contrato nº ${c.id} · Rank ${t.k}</div><h3>${esc(c.titulo)}</h3></div></div>
-   <div class="g-tags"><span class="g-st ${st}">${ST[st]}</span>${c.bioma?`<span class="g-tag">${c.bioma}</span>`:''}${c.tipo?`<span class="g-tag">${esc(c.tipo)}</span>`:''}</div>
+   <div class="g-tags"><span class="g-st ${st}">${ST[st]}</span>${espTag(c)}${c.bioma?`<span class="g-tag">${c.bioma}</span>`:''}${c.tipo?`<span class="g-tag">${esc(c.tipo)}</span>`:''}</div>
    ${tot?`<div><div class="g-prog"><i style="width:${cf/tot*100}%"></i><i class="p" style="width:${Math.min(pd,tot-cf)/tot*100}%"></i></div><div class="g-progl"><span>${cf} de ${tot} confirmados</span>${pd?`<span>+${pd} aguardando</span>`:''}</div></div>`:''}
    ${c.status==='aberto'&&c.prazo_horas?`<div class="g-prazo${urgente(c)?' urg':''}">Prazo: ${prazoTxt(c)}</div>`:''}
    <div class="g-ppl">${c.people.length?`Líder: <b>${esc(nomeAv(c.people[0]))}</b>${c.people.length>1?` + ${c.people.length-1}`:''}`:'Ninguém aceitou ainda'} · ${c.people.length}/${c.vagas} vagas</div>
-   <div class="g-ft"><span class="rw">${esc(c.recompensa||'Recompensa a combinar')}</span><span class="pts">+${pts(c)} pts${c.pontos_extra?` <small>(${c.pontos_extra} extra)</small>`:''}</span></div></button>`;
+   <div class="g-ft"><span class="rw">${esc(c.recompensa||'Recompensa a combinar')}</span><span class="pts">+${pts(c)} pts${c.pontos_extra?` <small>(${c.pontos_extra} extra)</small>`:''}</span></div>${espRunas(c)}</button>`,r,flags);
  }
  function drawBoard(){
   const list=S.cs.filter(c=>{const st=stOf(c);if(S.bioma&&c.bioma!==S.bioma)return false;if(S.rank&&c.rank!==S.rank)return false;
@@ -1222,7 +1289,7 @@ const GUILDA=(()=>{
     <div class="g-mact" style="margin-top:10px;align-items:center"><span style="font-size:13px">Bônus de pontos (missão mais difícil que parecia):</span><input type="number" id="gc-bonus" value="0" step="1" style="width:90px;padding:6px 8px;border:1px solid rgba(43,31,19,.35);border-radius:4px;background:#fff8ea;color:#2b1f13;font:inherit" aria-label="Pontos a somar"><button class="g-pbtn sm" id="gc-bonus-ok">Somar aos pontos do contrato</button><small style="color:#6a5640;flex-basis:100%">Hoje vale ${pts(c)} pts${c.pontos_extra?` (${c.pontos_extra} extras)`:''}. Número negativo tira pontos extras. Vale para todos os integrantes quando você honrar.</small>${c.people.length?'':'<button class="g-pbtn red" id="gc-excluir">'+(arm==='excluir'?'Confirmar exclusão':'Excluir')+'</button>'}</div>`;
   const log=c.entregas.length?`<ul class="g-log">${c.entregas.map(e=>{const it=c.items.find(i=>i.id===e.item_id);return `<li><span>${quando(e.criado_em)} · <b>${esc(nomeAv(e.aventureiro_id))}</b> entregou ${e.qtd}× ${esc(it?it.nome:'item')}${e.motivo?`<br><small style="color:#6a5640">${esc(e.motivo)}</small>`:''}</span><span style="display:flex;gap:6px;align-items:center"><span class="g-pill ${e.status}">${{pendente:'Aguardando Forseti',confirmada:'Confirmada',recusada:'Recusada'}[e.status]}</span>${mestre()&&e.status==='pendente'?`<button class="g-pbtn green sm" data-e="${e.id}" data-ok="1">Confirmar</button><button class="g-pbtn red sm" data-e="${e.id}">Recusar</button>`:''}</span></li>`;}).join('')}</ul>`:'<p style="color:#6a5640;margin:0">Nenhuma entrega registrada.</p>';
   modal.innerHTML=`<div class="mbox gbox paper" role="dialog" aria-modal="true" aria-label="${esc(c.titulo)}"><div class="mtext"><button class="mclose" id="mclose">Fechar</button>
-   <div class="g-lead"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="kicker">Contrato nº ${c.id} · <span class="g-st ${st}">${ST[st]}</span></div><h3>${esc(c.titulo)}</h3>${c.descricao?`<p class="g-desc">${esc(c.descricao).replace(/\n/g,'<br>')}</p>`:''}</div></div>
+   <div class="g-lead"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="kicker">Contrato nº ${c.id} · <span class="g-st ${st}">${ST[st]}</span>${ESP[c.especial]?` <span class="g-esp-kick e-${c.especial}">MISSÃO ESPECIAL · ${ESP[c.especial].n.toUpperCase()}</span>`:''}</div><h3>${esc(c.titulo)}</h3>${c.descricao?`<p class="g-desc">${esc(c.descricao).replace(/\n/g,'<br>')}</p>`:''}</div></div>
    <dl class="g-dl"><div><dt>Bioma</dt><dd>${c.bioma||'–'}</dd></div><div><dt>Tipo</dt><dd>${esc(c.tipo||'–')}</dd></div><div><dt>Rank do contrato</dt><dd>${t.k} · ${ptsTxt(c)}</dd></div><div><dt>Classe recomendada</dt><dd>${rt.n}</dd></div><div><dt>Recompensa</dt><dd>${esc(c.recompensa||'A combinar')}</dd></div><div><dt>Contratante</dt><dd>${esc(c.contratante)}</dd></div>${aberto?`<div><dt>Prazo</dt><dd${urgente(c)?' style="color:#9b2f1b"':''}>${prazoTxt(c)}</dd></div>`:''}</dl>
    <div class="g-h">Aventureiros (${c.people.length}/${c.vagas})</div><p style="margin:0;line-height:1.8">${c.people.length?c.people.map((p,k)=>{const rr=c.res&&c.res[p]&&c.res[p].r;return `${k===0?'<span class="g-lider">Líder da missão</span> ':''}<b>${esc(nomeAv(p))}</b> <small style="color:#6a5640">${T((AV(p)||{}).classe).n}</small>${rr?` <span class="g-pill ${rr==='concluiu'?'confirmada':rr==='falhou'?'recusada':'pendente'}">${rr==='concluiu'?`Concluiu +${c.res[p].p}`:rr==='falhou'?`Falhou ${c.res[p].p}`:'Não participou'}</span>`:''}`;}).join(' · '):'Ninguém aceitou ainda. Quem aceitar primeiro vira o líder da missão.'}</p>
    ${c.items.length?`<div class="g-h">Itens pedidos</div><table class="g-items"><thead><tr><th>Item</th><th class="num">Pedido</th><th class="num">Confirmado</th><th class="num">Aguardando</th>${dentro&&vivo?'<th class="num">Entregar agora</th>':''}</tr></thead><tbody>${c.items.map((x,i)=>`<tr><td>${esc(x.nome)}</td><td class="num">${x.qtd}</td><td class="num">${soma(c,x.id,'confirmada')}</td><td class="num">${soma(c,x.id,'pendente')||'–'}</td>${dentro&&vivo?`<td class="num"><input type="number" min="0" max="${resta[i]}" value="0" data-it="${x.id}" aria-label="Quantidade de ${esc(x.nome)}"></td>`:''}</tr>`).join('')}</tbody></table>
@@ -1263,6 +1330,7 @@ const GUILDA=(()=>{
     <label class="fld"><span>Bioma</span><select id="gf-b"><option value="">–</option>${opt(BIOMAS.map(x=>[x,x]),c.bioma)}</select></label>
     <label class="fld"><span>Rank do contrato</span><select id="gf-r">${opt(Object.keys(VAL).map(k=>[k,`${k} · +${VAL[k]*6} pts`]),c.rank||'E')}</select></label>
     <label class="fld"><span>Pontos extras (além do rank)</span><input type="text" inputmode="numeric" id="gf-px" value="${c.pontos_extra||0}"></label>
+    <label class="fld"><span>Missão especial</span><select id="gf-esp"><option value="">Não (contrato comum)</option>${opt(Object.entries(ESP).map(([k,e])=>[k,`${e.n} · ${k==='arcana'?'aura violeta':k==='lendaria'?'aura dourada':'aura de fogo'}`]),c.especial||'')}</select></label>
     <label class="fld"><span>Classe recomendada</span><select id="gf-rec">${opt(TIERS.slice(0,8).map(t=>[t.k,`${t.n} (${t.k})`]),c.classe_rec||'E')}</select></label>
     <label class="fld"><span>Recompensa</span><input type="text" id="gf-rw" maxlength="120" value="${esc(c.recompensa||'')}" placeholder="Ex.: 250 gold + comida"></label>
     <label class="fld"><span>Vagas de aventureiros</span><input type="text" inputmode="numeric" id="gf-v" value="${c.vagas||3}"></label>
@@ -1288,7 +1356,7 @@ const GUILDA=(()=>{
      ib.querySelectorAll('[data-rm]').forEach(b=>b.onclick=e=>{e.preventDefault();escolhidos=escolhidos.filter(x=>x!==+b.dataset.rm);draw(qi.value);});};
     draw();}).catch(e=>{ib.innerHTML=`<p class="fmsg err">${esc(e.message)}</p>`;escolhidos=null;});}
   modal.querySelector('#gf').onsubmit=async ev=>{ev.preventDefault();const v=q=>modal.querySelector(q).value.trim();
-   const p={titulo:v('#gf-t'),tipo:v('#gf-tipo'),bioma:v('#gf-b'),rank:v('#gf-r'),classe_rec:v('#gf-rec'),recompensa:v('#gf-rw'),vagas:Math.max(1,Math.min(30,parseInt(v('#gf-v'))||3)),descricao:v('#gf-d'),prazo_horas:Math.min(2160,Math.max(0,(parseInt(v('#gf-pd'))||0)*24+(parseInt(v('#gf-ph'))||0))),pontos_extra:Math.max(0,parseInt(v('#gf-px'))||0)};
+   const p={titulo:v('#gf-t'),tipo:v('#gf-tipo'),bioma:v('#gf-b'),rank:v('#gf-r'),classe_rec:v('#gf-rec'),recompensa:v('#gf-rw'),vagas:Math.max(1,Math.min(30,parseInt(v('#gf-v'))||3)),descricao:v('#gf-d'),prazo_horas:Math.min(2160,Math.max(0,(parseInt(v('#gf-pd'))||0)*24+(parseInt(v('#gf-ph'))||0))),pontos_extra:Math.max(0,parseInt(v('#gf-px'))||0),especial:v('#gf-esp')};
    if(box)p.itens=[...box.children].map(r=>({nome:r.children[0].value.trim(),qtd:+r.children[1].value||0})).filter(x=>x.nome&&x.qtd>0);
    const btn=ev.submitter||modal.querySelector('#gf button[type=submit]');btn.disabled=true;
    try{if(sug){await CONTA.rpc('guilda_sugestao_salvar',{p_id:c.id,p});await load();toast('Sugestão salva.');abrirSug(c.id);return;}
@@ -1364,12 +1432,13 @@ const GUILDA=(()=>{
  function drawSug(b){
   if(!b)return;
   b.innerHTML=S.sug.length?S.sug.map((c,i)=>{const t=T(c.rank),its=(c.itens||[]);
-   return `<button class="g-card" style="--r:${[-.6,.5,-.3,.7,-.5,.2][i%6]}deg" data-s="${c.id}">
+   const r=[-.6,.5,-.3,.7,-.5,.2][i%6]+'deg',esp=!!ESP[c.especial];
+   return espWrap(c,`<button class="g-card" style="--r:${esp?'0deg':r}" data-s="${c.id}">${esp?`<span class="g-esp-fita">${ESP[c.especial].n.toUpperCase()}</span>`:''}
     <div class="g-hd"><img src="${EMB(t.k)}" alt="Rank ${t.k}"><div><div class="g-no">Sugestão · Rank ${t.k}</div><h3>${esc(c.titulo)}</h3></div></div>
-    <div class="g-tags"><span class="g-st conferencia">Sugestão</span>${c.bioma?`<span class="g-tag">${c.bioma}</span>`:''}${c.tipo?`<span class="g-tag">${esc(c.tipo)}</span>`:''}</div>
+    <div class="g-tags"><span class="g-st conferencia">Sugestão</span>${espTag(c)}${c.bioma?`<span class="g-tag">${c.bioma}</span>`:''}${c.tipo?`<span class="g-tag">${esc(c.tipo)}</span>`:''}</div>
     ${its.length?`<div class="g-ppl">${its.map(x=>`${x.qtd}× ${esc(x.nome)}`).join(' · ')}</div>`:''}
     ${c.prazo_horas?`<div class="g-prazo">Prazo: ${durTxt(c.prazo_horas)} · ${c.vagas} vaga${c.vagas>1?'s':''}</div>`:''}
-    <div class="g-ft"><span class="rw">${esc(c.recompensa||'Recompensa a combinar')}</span><span class="pts">+${pts(c)} pts${c.pontos_extra?` <small>(${c.pontos_extra} extra)</small>`:''}</span></div></button>`;}).join('')
+    <div class="g-ft"><span class="rw">${esc(c.recompensa||'Recompensa a combinar')}</span><span class="pts">+${pts(c)} pts${c.pontos_extra?` <small>(${c.pontos_extra} extra)</small>`:''}</span></div>${espRunas(c)}</button>`,r);}).join('')
    :'<div class="empty"><h4>Nenhuma sugestão</h4><p>Quando você pedir novas sugestões de missões, elas aparecem aqui.</p></div>';
   b.querySelectorAll('[data-s]').forEach(el=>el.onclick=()=>abrirSug(+el.dataset.s));
  }
